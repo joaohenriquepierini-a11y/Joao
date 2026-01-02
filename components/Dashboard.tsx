@@ -1,5 +1,5 @@
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useMemo } from 'react';
 import { Sale, PDV } from '../types';
 
 interface Props {
@@ -19,6 +19,11 @@ const Dashboard: React.FC<Props> = ({ sales, pdvs, userName, userImage, onUpdate
 
   const now = Date.now();
   const DAY_IN_MS = 24 * 60 * 60 * 1000;
+  const SEVEN_DAYS_IN_MS = 7 * DAY_IN_MS;
+
+  // Lógica de Lembrete de Backup
+  const lastBackupTimestamp = Number(localStorage.getItem('tp_last_backup') || 0);
+  const needsBackup = (now - lastBackupTimestamp) > SEVEN_DAYS_IN_MS;
 
   const dateNow = new Date();
   const firstDayThisMonth = new Date(dateNow.getFullYear(), dateNow.getMonth(), 1).getTime();
@@ -93,6 +98,28 @@ const Dashboard: React.FC<Props> = ({ sales, pdvs, userName, userImage, onUpdate
           <span className="material-symbols-outlined text-primary">analytics</span>
         </div>
       </header>
+
+      {/* Alerta de Backup Semanal */}
+      {needsBackup && (
+        <section className="animate-in fade-in slide-in-from-top-4 duration-500">
+          <div className="bg-blue-500 text-white rounded-[2.5rem] p-6 shadow-xl shadow-blue-500/20 relative overflow-hidden">
+            <div className="absolute top-0 right-0 p-4 opacity-10">
+              <span className="material-symbols-outlined text-7xl transform rotate-12 font-black">cloud_upload</span>
+            </div>
+            <div className="relative z-10 flex items-center gap-4">
+              <div className="size-12 bg-white/20 rounded-2xl flex items-center justify-center shrink-0">
+                <span className="material-symbols-outlined font-black">backup</span>
+              </div>
+              <div className="flex-1">
+                <span className="text-[10px] font-black uppercase tracking-[0.2em]">Lembrete de Segurança</span>
+                <h3 className="text-sm font-black leading-tight italic uppercase mt-1">
+                  Já faz uma semana! Faça um backup para não perder seus dados.
+                </h3>
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
 
       {criticalCities.length > 0 && (
         <section className="animate-bounce-short">

@@ -58,7 +58,7 @@ const Settings: React.FC<Props> = ({ isDarkMode, onToggleTheme, userName, userIm
       name: localStorage.getItem('tp_name') || 'Usuário',
       image: localStorage.getItem('tp_image') || '',
       theme: localStorage.getItem('tp_theme') || 'light',
-      version: '2.3.0',
+      version: '2.4.0',
       exportDate: new Date().toISOString()
     };
 
@@ -73,6 +73,10 @@ const Settings: React.FC<Props> = ({ isDarkMode, onToggleTheme, userName, userIm
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
+
+    // Atualiza a data do último backup para o lembrete semanal
+    localStorage.setItem('tp_last_backup', Date.now().toString());
+    
     alert('Backup gerado com sucesso! Salve este arquivo no seu Google Drive para segurança.');
   };
 
@@ -102,6 +106,7 @@ const Settings: React.FC<Props> = ({ isDarkMode, onToggleTheme, userName, userIm
         localStorage.setItem('tp_name', data.name || 'Usuário');
         localStorage.setItem('tp_image', data.image || '');
         localStorage.setItem('tp_theme', data.theme || 'light');
+        localStorage.setItem('tp_last_backup', Date.now().toString());
         
         alert('Backup restaurado com sucesso! O aplicativo será reiniciado.');
         window.location.reload();
@@ -143,7 +148,6 @@ const Settings: React.FC<Props> = ({ isDarkMode, onToggleTheme, userName, userIm
           </section>
         )}
 
-        {/* NOVA SEÇÃO: BACKUP */}
         <section>
           <h2 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4 px-1 italic">Segurança de Dados</h2>
           <div className="bg-white dark:bg-surface-dark rounded-[2.5rem] shadow-sm border border-gray-100 dark:border-white/5 overflow-hidden divide-y divide-gray-50 dark:divide-white/5">
@@ -230,7 +234,7 @@ const Settings: React.FC<Props> = ({ isDarkMode, onToggleTheme, userName, userIm
         </section>
 
         <div className="mt-4 flex flex-col items-center gap-2 opacity-30">
-          <p className="text-[10px] font-black text-gray-500 uppercase tracking-[0.3em]">Trufa Pro v2.3.0</p>
+          <p className="text-[10px] font-black text-gray-500 uppercase tracking-[0.3em]">Trufa Pro v2.4.0</p>
         </div>
       </main>
     </div>

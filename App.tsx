@@ -20,7 +20,6 @@ const MOCK_TRUFFLES: Truffle[] = [
 ];
 
 const App: React.FC = () => {
-  // Alterado para localStorage para persistir o login entre sessões (Histórico de Login)
   const [isAuthenticated, setIsAuthenticated] = useState(() => localStorage.getItem('tp_auth') === 'true');
   const [view, setView] = useState<View>(View.DASHBOARD);
   const [sales, setSales] = useState<Sale[]>(() => JSON.parse(localStorage.getItem('tp_sales') || '[]'));
@@ -67,6 +66,13 @@ const App: React.FC = () => {
     setView(View.LOGISTICS);
   };
 
+  const handleDeletePDV = (id: string) => {
+    // A confirmação agora é feita nos componentes filhos para permitir mensagens específicas
+    setPdvs(prev => prev.filter(p => p.id !== id));
+    if (activePDVForSale?.id === id) setActivePDVForSale(null);
+    return true;
+  };
+
   if (!isAuthenticated) {
     return <LoginScreen onLogin={handleLogin} />;
   }
@@ -80,13 +86,13 @@ const App: React.FC = () => {
       case View.CATALOG:
         return <Catalog truffles={truffles} onSave={t => setTruffles(prev => prev.some(x => x.id === t.id) ? prev.map(x => x.id === t.id ? t : x) : [t, ...prev])} onDelete={id => setTruffles(truffles.filter(t => t.id !== id))} />;
       case View.LOGISTICS:
-        return <PDVList pdvs={pdvs} sales={sales} onNavigate={setView} onSelectPDVForSale={(pdv) => { setActivePDVForSale(pdv); setView(View.REGISTER_SALE); }} />;
+        return <PDVList pdvs={pdvs} sales={sales} onNavigate={setView} onSelectPDVForSale={(pdv) => { setActivePDVForSale(pdv); setView(View.REGISTER_SALE); }} onDeletePDV={handleDeletePDV} />;
       case View.REGISTER_PDV:
         return <RegisterPDV onAdd={handleAddPDV} onCancel={() => setView(View.LOGISTICS)} />;
       case View.REGISTER_SALE:
-        return <RegisterSale truffles={truffles} type={activePDVForSale ? 'PDV' : 'Rua'} preSelectedPDV={activePDVForSale} onAddSale={handleAddSale} onCancel={() => { setActivePDVForSale(null); setView(activePDVForSale ? View.LOGISTICS : View.HISTORY); }} />;
+        return <RegisterSale sales={sales} truffles={truffles} type={activePDVForSale ? 'PDV' : 'Rua'} preSelectedPDV={activePDVForSale} onAddSale={handleAddSale} onDeletePDV={handleDeletePDV} onCancel={() => { setActivePDVForSale(null); setView(activePDVForSale ? View.LOGISTICS : View.HISTORY); }} />;
       case View.PDV_DETAILS:
-        return <PDVDetails pdvs={pdvs} sales={sales} onBack={() => setView(View.LOGISTICS)} onSelectPDVForSale={(pdv) => { setActivePDVForSale(pdv); setView(View.REGISTER_SALE); }} />;
+        return <PDVDetails pdvs={pdvs} sales={sales} onBack={() => setView(View.LOGISTICS)} onDeletePDV={handleDeletePDV} onSelectPDVForSale={(pdv) => { setActivePDVForSale(pdv); setView(View.REGISTER_SALE); }} />;
       case View.CITY_DETAILS:
         return <CityDetails pdvs={pdvs} sales={sales} onBack={() => setView(View.LOGISTICS)} />;
       case View.SETTINGS:

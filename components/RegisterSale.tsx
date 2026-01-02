@@ -8,9 +8,11 @@ interface Props {
   onCancel: () => void;
   type: 'Rua' | 'PDV';
   preSelectedPDV?: PDV | null;
+  onDeletePDV?: (id: string) => boolean;
+  sales: Sale[]; // Adicionado para verificar se é PDV Futuro
 }
 
-const RegisterSale: React.FC<Props> = ({ truffles, onAddSale, onCancel, type, preSelectedPDV }) => {
+const RegisterSale: React.FC<Props> = ({ truffles, onAddSale, onCancel, type, preSelectedPDV, onDeletePDV, sales }) => {
   const [quantities, setQuantities] = useState<Record<string, number>>({}); 
   const [leftOver, setLeftOver] = useState<Record<string, number>>({}); 
   const [newConsigned, setNewConsigned] = useState<Record<string, number>>({}); 
@@ -19,6 +21,9 @@ const RegisterSale: React.FC<Props> = ({ truffles, onAddSale, onCancel, type, pr
   const [ownerName, setOwnerName] = useState(preSelectedPDV?.contactName || '');
   const [observation, setObservation] = useState('');
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+
+  // Verifica se este PDV específico tem alguma venda no histórico
+  const isFuturePDV = preSelectedPDV ? !sales.some(s => s.location.toLowerCase() === preSelectedPDV.companyName.toLowerCase() && s.type === 'PDV') : false;
 
   const calculatedTotal = (Object.entries(quantities) as [string, number][]).reduce((acc, [id, qty]) => {
     const truffle = truffles.find(t => t.id === id);
@@ -33,9 +38,9 @@ const RegisterSale: React.FC<Props> = ({ truffles, onAddSale, onCancel, type, pr
       .filter(t => (quantities[t.id] || 0) > 0 || (leftOver[t.id] || 0) > 0 || (newConsigned[t.id] || 0) > 0)
       .map(t => ({
         truffleId: t.id,
-        quantity: quantities[t.id] || 0, // Trufas Recebidas (Venda/Dinheiro)
-        leftOverQuantity: leftOver[t.id] || 0, // Trufas que ficaram lá
-        newConsignedQuantity: newConsigned[t.id] || 0 // Trufas Deixadas (Reposição)
+        quantity: quantities[t.id] || 0,
+        leftOverQuantity: leftOver[t.id] || 0,
+        newConsignedQuantity: newConsigned[t.id] || 0
       }));
 
     if (items.length === 0) { alert("Adicione pelo menos uma trufa!"); return; }
@@ -57,7 +62,21 @@ const RegisterSale: React.FC<Props> = ({ truffles, onAddSale, onCancel, type, pr
     onAddSale(newSale);
   };
 
-  // TELA SIMPLES: VENDA DE RUA
+  const handleDeleteCurrentPDV = () => {
+    if (preSelectedPDV && onDeletePDV) {
+      const msg = isFuturePDV 
+        ? `CONFIRMAR: Deseja excluir este PDV FUTURO?\n\n"${preSelectedPDV.companyName.toUpperCase()}" ainda não tem vendas e será removido da rota.` 
+        : `ATENÇÃO: Deseja excluir este PDV ATIVO?\n\n"${preSelectedPDV.companyName.toUpperCase()}" possui histórico. Esta ação é irreversível!`;
+
+      if (window.confirm(`⚠️ SEGURANÇA MASTER\n\n${msg}`)) {
+        const deleted = onDeletePDV(preSelectedPDV.id);
+        if (deleted) {
+          onCancel(); 
+        }
+      }
+    }
+  };
+
   if (type === 'Rua') {
     return (
       <div className="flex flex-col min-h-screen bg-background-light dark:bg-background-dark pb-32">
@@ -65,7 +84,7 @@ const RegisterSale: React.FC<Props> = ({ truffles, onAddSale, onCancel, type, pr
           <button onClick={onCancel} className="material-symbols-outlined text-gray-400">close</button>
           <div className="text-center">
             <h1 className="text-xl font-black text-primary uppercase italic leading-none">Venda Rápida Rua</h1>
-            <p className="text-[10px] font-bold text-gray-400 mt-1 uppercase tracking-widest">Apenas sabor e quantidade</p>
+            <p className="text-[10px] font-bold text-gray-400 mt-1 uppercase tracking-widest">Ponto Móvel</p>
           </div>
           <div className="w-6"></div>
         </header>
@@ -93,29 +112,45 @@ const RegisterSale: React.FC<Props> = ({ truffles, onAddSale, onCancel, type, pr
 
         <div className="fixed bottom-0 left-0 right-0 p-6 bg-surface-light/95 dark:bg-surface-dark/95 backdrop-blur-xl border-t border-gray-100 dark:border-white/10">
           <div className="flex items-center justify-between mb-4 px-2">
-            <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Total da Venda</span>
+            <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Total</span>
             <span className="text-2xl font-black text-primary italic">R$ {calculatedTotal.toFixed(2)}</span>
           </div>
-          <button onClick={handleConfirm} className="w-full h-14 bg-primary text-white rounded-[2rem] font-black shadow-lg shadow-primary/20 active:scale-95 transition-all">SALVAR REGISTRO</button>
+          <button onClick={handleConfirm} className="w-full h-14 bg-primary text-white rounded-[2rem] font-black shadow-lg shadow-primary/20 active:scale-95 transition-all uppercase">Salvar Venda</button>
         </div>
       </div>
     );
   }
 
-  // TELA DETALHADA: VENDA PDV
   return (
     <div className="flex flex-col min-h-screen bg-background-light dark:bg-background-dark pb-44">
       <header className="sticky top-0 z-50 bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-md px-6 py-6 border-b border-gray-100 dark:border-white/5 flex items-center justify-between">
-        <button onClick={onCancel} className="material-symbols-outlined text-gray-400">arrow_back</button>
+        <button onClick={onCancel} className="size-11 flex items-center justify-center rounded-2xl bg-white dark:bg-surface-dark text-gray-400 shadow-sm active:scale-90">
+          <span className="material-symbols-outlined">arrow_back</span>
+        </button>
         <div className="text-center">
           <h1 className="text-lg font-black text-text-main-light dark:text-white uppercase italic leading-none">Acerto de PDV</h1>
           <p className="text-[9px] font-black text-primary uppercase tracking-widest mt-1">Gestão de Consignação</p>
         </div>
-        <div className="w-6"></div>
+        {preSelectedPDV ? (
+          <button 
+            onClick={handleDeleteCurrentPDV} 
+            className={`size-11 rounded-2xl flex items-center justify-center transition-all shadow-md active:scale-90 ${isFuturePDV ? 'bg-orange-500 text-white shadow-orange-500/20' : 'bg-red-50 dark:bg-red-950/20 text-red-400 hover:bg-red-500 hover:text-white'}`}
+          >
+            <span className="material-symbols-outlined !text-xl">{isFuturePDV ? 'delete_sweep' : 'delete_forever'}</span>
+          </button>
+        ) : (
+          <div className="w-11"></div>
+        )}
       </header>
 
       <main className="p-6 space-y-6">
-        {/* INFO DA LOJA */}
+        {isFuturePDV && (
+          <div className="bg-orange-500/10 border border-orange-500/20 p-4 rounded-3xl flex items-center gap-3">
+            <span className="material-symbols-outlined text-orange-500">info</span>
+            <p className="text-[9px] font-black text-orange-600 uppercase leading-tight italic">Este é um PDV Futuro. Você pode excluí-lo no botão acima se não for mais visitá-lo.</p>
+          </div>
+        )}
+
         <section className="bg-white dark:bg-surface-dark p-6 rounded-[2.5rem] shadow-sm border border-gray-100 dark:border-white/5 space-y-4">
           <div className="space-y-1">
             <label className="text-[9px] font-black text-primary uppercase tracking-widest px-1">Nome da Loja</label>
@@ -137,13 +172,8 @@ const RegisterSale: React.FC<Props> = ({ truffles, onAddSale, onCancel, type, pr
                <input type="date" className="w-full bg-background-light dark:bg-white/5 border-none rounded-2xl p-4 text-[10px] font-black h-[52px]" value={selectedDate} onChange={e => setSelectedDate(e.target.value)} />
              </div>
           </div>
-          <div className="space-y-1">
-             <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest px-1">Cidade</label>
-             <input disabled={!!preSelectedPDV} className="w-full bg-background-light dark:bg-white/5 border-none rounded-2xl p-4 text-xs font-bold" placeholder="Cidade da Loja" value={city} onChange={e => setCity(e.target.value)} />
-          </div>
         </section>
 
-        {/* CONTROLE DE TRUFAS */}
         <section className="space-y-4">
           <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-2 italic">Controle por Sabor</h3>
           {truffles.map(t => (
@@ -187,12 +217,11 @@ const RegisterSale: React.FC<Props> = ({ truffles, onAddSale, onCancel, type, pr
           ))}
         </section>
 
-        {/* OBSERVAÇÃO */}
         <section className="space-y-2">
            <label className="text-[10px] font-black text-primary uppercase tracking-widest px-2 italic">Observações desta Visita</label>
            <textarea 
-            className="w-full bg-white dark:bg-surface-dark border-none rounded-[2rem] p-6 text-sm font-medium shadow-sm min-h-[140px] resize-none focus:ring-2 focus:ring-primary/20 placeholder:opacity-30"
-            placeholder="Feedback do cliente, pedidos para o futuro ou detalhes da entrega..."
+            className="w-full bg-white dark:bg-surface-dark border-none rounded-[2rem] p-6 text-sm font-medium shadow-sm min-h-[140px] resize-none focus:ring-2 focus:ring-primary/20"
+            placeholder="Feedback do cliente..."
             value={observation}
             onChange={e => setObservation(e.target.value)}
           />
