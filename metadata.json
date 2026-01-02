@@ -1,0 +1,8 @@
+{
+  "name": "Trufa Pro - Edição Master",
+  "description": "Gestão completa de vendas de trufas, faturamento, catálogo e controle de PDVs em um único arquivo de alto desempenho.",
+  "requestFramePermissions": [
+    "camera",
+    "geolocation"
+  ]
+}
