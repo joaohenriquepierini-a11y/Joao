@@ -11,6 +11,7 @@ import RegisterSale from './components/RegisterSale';
 import Settings from './components/Settings';
 import RegisterPDV from './components/RegisterPDV';
 import InstallPrompt from './components/InstallPrompt';
+import LoginScreen from './components/LoginScreen';
 
 const MOCK_TRUFFLES: Truffle[] = [
   { id: '1', name: 'Trufa Tradicional', flavor: 'Chocolate ao Leite', priceStreet: 3.0, pricePDV: 3.5, icon: 'cookie' },
@@ -19,12 +20,13 @@ const MOCK_TRUFFLES: Truffle[] = [
 ];
 
 const App: React.FC = () => {
+  // Alterado para localStorage para persistir o login entre sessões (Histórico de Login)
+  const [isAuthenticated, setIsAuthenticated] = useState(() => localStorage.getItem('tp_auth') === 'true');
   const [view, setView] = useState<View>(View.DASHBOARD);
   const [sales, setSales] = useState<Sale[]>(() => JSON.parse(localStorage.getItem('tp_sales') || '[]'));
   const [truffles, setTruffles] = useState<Truffle[]>(() => JSON.parse(localStorage.getItem('tp_truffles') || JSON.stringify(MOCK_TRUFFLES)));
   const [pdvs, setPdvs] = useState<PDV[]>(() => JSON.parse(localStorage.getItem('tp_pdvs') || '[]'));
   
-  // Alterado para iniciar neutro
   const [userName, setUserName] = useState(() => localStorage.getItem('tp_name') || 'Usuário');
   const [userImage, setUserImage] = useState(() => localStorage.getItem('tp_image') || '');
   
@@ -41,6 +43,19 @@ const App: React.FC = () => {
     document.documentElement.classList.toggle('dark', isDarkMode);
   }, [sales, truffles, pdvs, userName, userImage, isDarkMode]);
 
+  const handleLogin = () => {
+    setIsAuthenticated(true);
+    localStorage.setItem('tp_auth', 'true');
+  };
+
+  const handleLogout = () => {
+    if (confirm('Deseja realmente encerrar sua sessão? Será necessário digitar a senha novamente.')) {
+      setIsAuthenticated(false);
+      localStorage.removeItem('tp_auth');
+      setView(View.DASHBOARD);
+    }
+  };
+
   const handleAddSale = (sale: Sale) => {
     setSales([sale, ...sales]);
     setActivePDVForSale(null);
@@ -51,6 +66,10 @@ const App: React.FC = () => {
     setPdvs([pdv, ...pdvs]);
     setView(View.LOGISTICS);
   };
+
+  if (!isAuthenticated) {
+    return <LoginScreen onLogin={handleLogin} />;
+  }
 
   const renderContent = () => {
     switch (view) {
@@ -71,7 +90,7 @@ const App: React.FC = () => {
       case View.CITY_DETAILS:
         return <CityDetails pdvs={pdvs} sales={sales} onBack={() => setView(View.LOGISTICS)} />;
       case View.SETTINGS:
-        return <Settings isDarkMode={isDarkMode} onToggleTheme={() => setIsDarkMode(!isDarkMode)} userName={userName} userImage={userImage} onUpdateName={setUserName} onUpdateImage={setUserImage} />;
+        return <Settings isDarkMode={isDarkMode} onToggleTheme={() => setIsDarkMode(!isDarkMode)} userName={userName} userImage={userImage} onUpdateName={setUserName} onUpdateImage={setUserImage} onLogout={handleLogout} />;
       default:
         return <Dashboard sales={sales} pdvs={pdvs} userName={userName} userImage={userImage} onUpdateName={setUserName} onUpdateImage={setUserImage} />;
     }

@@ -8,9 +8,10 @@ interface Props {
   userImage: string;
   onUpdateName: (name: string) => void;
   onUpdateImage: (image: string) => void;
+  onLogout: () => void;
 }
 
-const Settings: React.FC<Props> = ({ isDarkMode, onToggleTheme, userName, userImage, onUpdateName, onUpdateImage }) => {
+const Settings: React.FC<Props> = ({ isDarkMode, onToggleTheme, userName, userImage, onUpdateName, onUpdateImage, onLogout }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [isInstalled, setIsInstalled] = useState(false);
@@ -108,15 +109,32 @@ const Settings: React.FC<Props> = ({ isDarkMode, onToggleTheme, userName, userIm
         </section>
 
         <section>
-          <h2 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4 px-1 italic">Preferências</h2>
+          <h2 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4 px-1 italic">Preferências e Segurança</h2>
           <div className="bg-white dark:bg-surface-dark rounded-[2.5rem] shadow-sm border border-gray-100 dark:border-white/5 overflow-hidden divide-y divide-gray-50 dark:divide-white/5">
             <SettingsToggle icon="dark_mode" label="Modo Escuro" checked={isDarkMode} onChange={onToggleTheme} />
             <SettingsAction icon="notifications" label="Notificações de Rota" value="Ativado" />
+            
+            {/* Botão de Sair Reestilizado */}
+            <button 
+              onClick={onLogout} 
+              className="w-full flex items-center justify-between p-5 cursor-pointer hover:bg-red-50 dark:hover:bg-red-950/10 transition-colors group"
+            >
+              <div className="flex items-center gap-4">
+                <div className="size-10 rounded-xl flex items-center justify-center bg-red-50 dark:bg-red-950/20 text-red-500 group-active:scale-90 transition-transform">
+                  <span className="material-symbols-outlined">logout</span>
+                </div>
+                <div className="text-left">
+                  <span className="text-xs font-black text-red-500 uppercase italic leading-none block">Encerrar Sessão</span>
+                  <span className="text-[8px] font-bold text-gray-400 uppercase tracking-widest mt-1">Bloquear acesso com senha</span>
+                </div>
+              </div>
+              <span className="material-symbols-outlined text-red-200 text-sm">chevron_right</span>
+            </button>
           </div>
         </section>
 
         <div className="mt-4 flex flex-col items-center gap-2 opacity-30">
-          <p className="text-[10px] font-black text-gray-500 uppercase tracking-[0.3em]">Trufa Pro v2.1.1</p>
+          <p className="text-[10px] font-black text-gray-500 uppercase tracking-[0.3em]">Trufa Pro v2.2.0</p>
         </div>
       </main>
     </div>
