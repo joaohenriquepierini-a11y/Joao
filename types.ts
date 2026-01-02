@@ -1,12 +1,13 @@
 
-// Definindo os tipos básicos para o sistema Trufa Pro
+// Tipagem atualizada para Trufa Pro - Consignação Master
 
 export type PaymentMethod = 'PIX' | 'DINHEIRO';
 
 export interface SaleItem {
   truffleId: string;
-  quantity: number;
-  consignedQuantity?: number;
+  quantity: number; // Quantidade Vendida/Paga no dia
+  leftOverQuantity?: number; // O que sobrou do estoque anterior
+  newConsignedQuantity?: number; // O novo estoque deixado hoje
 }
 
 export interface Sale {
@@ -20,10 +21,12 @@ export interface Sale {
   items: SaleItem[];
   total: number;
   ownerName?: string;
+  observation?: string;
 }
 
 export interface Truffle {
   id: string;
+  name: string;
   flavor: string;
   priceStreet: number;
   pricePDV: number;
@@ -33,7 +36,8 @@ export interface Truffle {
 
 export interface PDV {
   id: string;
-  name: string;
+  companyName: string;
+  contactName: string;
   city: string;
 }
 
@@ -42,8 +46,9 @@ export enum View {
   CATALOG = 'CATALOG',
   REGISTER_SALE = 'REGISTER_SALE',
   HISTORY = 'HISTORY',
-  LOGISTICS = 'LOGISTICS',
+  LOGISTICS = 'LOGISTICS', 
   SETTINGS = 'SETTINGS',
   PDV_DETAILS = 'PDV_DETAILS',
-  CITY_DETAILS = 'CITY_DETAILS'
+  CITY_DETAILS = 'CITY_DETAILS',
+  REGISTER_PDV = 'REGISTER_PDV'
 }
