@@ -55,7 +55,6 @@ const Settings: React.FC<Props> = ({ isDarkMode, onToggleTheme, userName, userIm
       </header>
 
       <main className="p-6 flex flex-col gap-8 pb-32">
-        {/* APP STATUS & INSTALLATION */}
         {!isInstalled && (
           <section>
             <h2 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4 px-1 italic">Aplicativo</h2>
@@ -75,23 +74,20 @@ const Settings: React.FC<Props> = ({ isDarkMode, onToggleTheme, userName, userIm
               >
                 {deferredPrompt ? 'Instalar Agora' : 'Pronto para Instalação'}
               </button>
-              {!deferredPrompt && (
-                <p className="text-[8px] text-center text-text-sub-light italic">
-                  Se o botão não ativar, use a opção "Adicionar à tela de início" do seu navegador.
-                </p>
-              )}
             </div>
           </section>
         )}
 
         <section>
-          <h2 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4 px-1 italic">Meu Perfil</h2>
+          <h2 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4 px-1 italic">Meu Cadastro</h2>
           <div className="bg-white dark:bg-surface-dark rounded-[2.5rem] p-6 shadow-sm border border-gray-100 dark:border-white/5 flex items-center gap-5">
             <div className="relative shrink-0 group cursor-pointer" onClick={() => fileInputRef.current?.click()}>
               <div 
-                className="size-16 rounded-2xl bg-cover bg-center border-2 border-primary/20 shadow-md"
-                style={{ backgroundImage: `url("${userImage}")` }}
-              ></div>
+                className="size-16 rounded-2xl bg-cover bg-center border-2 border-primary/20 shadow-md bg-gray-100 dark:bg-white/5 flex items-center justify-center"
+                style={userImage ? { backgroundImage: `url("${userImage}")` } : {}}
+              >
+                {!userImage && <span className="material-symbols-outlined text-gray-400">person</span>}
+              </div>
               <div className="absolute -bottom-1 -right-1 size-6 bg-primary text-white rounded-lg flex items-center justify-center border-2 border-white dark:border-surface-dark">
                 <span className="material-symbols-outlined !text-xs font-black">photo_camera</span>
               </div>
@@ -101,10 +97,11 @@ const Settings: React.FC<Props> = ({ isDarkMode, onToggleTheme, userName, userIm
               <input 
                 type="text" 
                 className="w-full bg-transparent border-none p-0 text-lg font-black text-text-main-light dark:text-white italic focus:ring-0 uppercase tracking-tighter"
-                value={userName}
-                onChange={e => onUpdateName(e.target.value)}
+                value={userName === 'Usuário' ? '' : userName}
+                placeholder="Usuário"
+                onChange={e => onUpdateName(e.target.value || 'Usuário')}
               />
-              <p className="text-[9px] font-bold text-primary uppercase tracking-widest mt-1">Vendedor Master</p>
+              <p className="text-[9px] font-bold text-primary uppercase tracking-widest mt-1">Identificação do Vendedor</p>
             </div>
             <span className="material-symbols-outlined text-gray-200">edit</span>
           </div>
@@ -119,11 +116,7 @@ const Settings: React.FC<Props> = ({ isDarkMode, onToggleTheme, userName, userIm
         </section>
 
         <div className="mt-4 flex flex-col items-center gap-2 opacity-30">
-          <p className="text-[10px] font-black text-gray-500 uppercase tracking-[0.3em]">Trufa Pro v2.1.0</p>
-          <div className="flex gap-4">
-            <span className="material-symbols-outlined !text-sm">verified_user</span>
-            <span className="material-symbols-outlined !text-sm">security</span>
-          </div>
+          <p className="text-[10px] font-black text-gray-500 uppercase tracking-[0.3em]">Trufa Pro v2.1.1</p>
         </div>
       </main>
     </div>

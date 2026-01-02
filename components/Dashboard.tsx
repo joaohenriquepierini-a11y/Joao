@@ -13,14 +13,13 @@ interface Props {
 
 const Dashboard: React.FC<Props> = ({ sales, pdvs, userName, userImage, onUpdateName, onUpdateImage }) => {
   const [isEditingProfile, setIsEditingProfile] = useState(false);
-  const [tempName, setTempName] = useState(userName);
+  const [tempName, setTempName] = useState(userName === 'Usuário' ? '' : userName);
   const [tempImage, setTempImage] = useState(userImage);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const now = Date.now();
   const DAY_IN_MS = 24 * 60 * 60 * 1000;
 
-  // Datas para Faturamento
   const dateNow = new Date();
   const firstDayThisMonth = new Date(dateNow.getFullYear(), dateNow.getMonth(), 1).getTime();
   const firstDayLastMonth = new Date(dateNow.getFullYear(), dateNow.getMonth() - 1, 1).getTime();
@@ -35,19 +34,12 @@ const Dashboard: React.FC<Props> = ({ sales, pdvs, userName, userImage, onUpdate
   const diffPercent = lastMonthTotal > 0 ? ((currentTotal - lastMonthTotal) / lastMonthTotal) * 100 : 0;
   const isUp = currentTotal >= lastMonthTotal;
 
-  // LÓGICA DE ATENÇÃO À ROTA (PDVs APENAS)
-  // 1. Identificar todas as cidades que possuem pelo menos um PDV cadastrado
-  // Fix: Explicitly typed registeredPdvCities as string[] to ensure correct inference from Array.from
   const registeredPdvCities: string[] = Array.from(new Set(pdvs.map(p => p.city)));
 
-  // 2. Para cada uma dessas cidades, encontrar a data da última venda do tipo 'PDV'
-  // Fix: Explicitly typed cityName as string to avoid index signature error with 'unknown' type at line 50
   const citiesData = registeredPdvCities.reduce<Record<string, number>>((acc, cityName: string) => {
     const lastPdvSaleInCity = sales
       .filter(s => s.type === 'PDV' && s.city === cityName)
       .sort((a, b) => b.timestamp - a.timestamp)[0];
-    
-    // Se nunca houve venda no PDV dessa cidade, usamos 0 para indicar "nunca visitado"
     acc[cityName] = lastPdvSaleInCity ? lastPdvSaleInCity.timestamp : 0;
     return acc;
   }, {});
@@ -55,7 +47,6 @@ const Dashboard: React.FC<Props> = ({ sales, pdvs, userName, userImage, onUpdate
   const cityAbsence = Object.entries(citiesData)
     .map(([name, lastVisit]) => ({
       name,
-      // Se lastVisit for 0, colocamos um número alto para aparecer no topo do ranking de ausência
       daysSince: lastVisit === 0 ? 999 : Math.floor((now - lastVisit) / DAY_IN_MS),
       lastVisit
     }))
@@ -75,11 +66,9 @@ const Dashboard: React.FC<Props> = ({ sales, pdvs, userName, userImage, onUpdate
   };
 
   const handleSaveProfile = () => {
-    if (tempName.trim()) {
-      onUpdateName(tempName);
-      onUpdateImage(tempImage);
-      setIsEditingProfile(false);
-    }
+    onUpdateName(tempName.trim() || 'Usuário');
+    onUpdateImage(tempImage);
+    setIsEditingProfile(false);
   };
 
   return (
@@ -88,12 +77,16 @@ const Dashboard: React.FC<Props> = ({ sales, pdvs, userName, userImage, onUpdate
         <div className="flex items-center gap-3">
           <button 
             onClick={() => setIsEditingProfile(true)}
-            className="size-12 rounded-full bg-cover bg-center border-2 border-primary/30 shadow-sm overflow-hidden active:scale-90 transition-transform" 
-            style={{ backgroundImage: `url("${userImage}")` }}
-          ></button>
+            className="size-12 rounded-full bg-cover bg-center border-2 border-primary/30 shadow-sm overflow-hidden active:scale-90 transition-transform bg-gray-100 dark:bg-surface-dark flex items-center justify-center" 
+            style={userImage ? { backgroundImage: `url("${userImage}")` } : {}}
+          >
+            {!userImage && <span className="material-symbols-outlined text-text-sub-light text-2xl">person</span>}
+          </button>
           <div>
             <p className="text-[10px] text-text-sub-light font-black uppercase tracking-widest leading-none mb-1">Boas vendas,</p>
-            <h2 className="text-text-main-light dark:text-text-main-dark text-xl font-bold tracking-tight italic uppercase">{userName}</h2>
+            <h2 className="text-text-main-light dark:text-text-main-dark text-xl font-bold tracking-tight italic uppercase">
+              {userName}
+            </h2>
           </div>
         </div>
         <div className="size-11 bg-white dark:bg-surface-dark rounded-2xl flex items-center justify-center shadow-sm border border-black/5 dark:border-white/5">
@@ -101,7 +94,6 @@ const Dashboard: React.FC<Props> = ({ sales, pdvs, userName, userImage, onUpdate
         </div>
       </header>
 
-      {/* ALERTA ROTA CRÍTICA (> 28 DIAS) */}
       {criticalCities.length > 0 && (
         <section className="animate-bounce-short">
           <div className="bg-red-500 text-white rounded-[2.5rem] p-6 shadow-xl shadow-red-500/20 relative overflow-hidden">
@@ -120,7 +112,6 @@ const Dashboard: React.FC<Props> = ({ sales, pdvs, userName, userImage, onUpdate
         </section>
       )}
 
-      {/* CARD DE FATURAMENTO */}
       <section>
         <div className="bg-white dark:bg-surface-dark rounded-[3rem] p-8 shadow-sm border border-primary/5 relative overflow-hidden">
           <div className="absolute top-0 right-0 p-8 opacity-[0.03]">
@@ -148,7 +139,6 @@ const Dashboard: React.FC<Props> = ({ sales, pdvs, userName, userImage, onUpdate
         </div>
       </section>
 
-      {/* RANKING DE AUSÊNCIA (FILTRADO POR PDVs) */}
       <section>
         <div className="flex justify-between items-center mb-4 px-1">
           <h3 className="text-[10px] font-black text-primary uppercase tracking-[0.2em] italic">Atenção à Rota PDV</h3>
@@ -180,7 +170,6 @@ const Dashboard: React.FC<Props> = ({ sales, pdvs, userName, userImage, onUpdate
         </div>
       </section>
 
-      {/* MODAL DE PERFIL MELHORADO */}
       {isEditingProfile && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/60 backdrop-blur-md">
           <div className="bg-white dark:bg-surface-dark w-full max-w-xs rounded-[3xl] p-8 shadow-2xl animate-in zoom-in-95 duration-200">
@@ -189,9 +178,10 @@ const Dashboard: React.FC<Props> = ({ sales, pdvs, userName, userImage, onUpdate
             <div className="flex flex-col items-center gap-6 mb-8">
               <div className="relative group cursor-pointer" onClick={() => fileInputRef.current?.click()}>
                 <div 
-                  className="size-28 rounded-[2.5rem] bg-cover bg-center border-4 border-primary/20 shadow-xl overflow-hidden" 
-                  style={{ backgroundImage: `url("${tempImage}")` }}
+                  className="size-28 rounded-[2.5rem] bg-cover bg-center border-4 border-primary/20 shadow-xl overflow-hidden flex items-center justify-center bg-gray-100 dark:bg-white/5" 
+                  style={tempImage ? { backgroundImage: `url("${tempImage}")` } : {}}
                 >
+                  {!tempImage && <span className="material-symbols-outlined text-gray-400 text-5xl">person_add</span>}
                   <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                     <span className="material-symbols-outlined text-white text-3xl">photo_camera</span>
                   </div>
@@ -214,6 +204,7 @@ const Dashboard: React.FC<Props> = ({ sales, pdvs, userName, userImage, onUpdate
                   type="text" 
                   className="w-full bg-gray-50 dark:bg-white/5 border-none rounded-2xl p-4 text-center font-bold text-lg focus:ring-2 focus:ring-primary/40" 
                   value={tempName} 
+                  placeholder="Seu nome"
                   onChange={e => setTempName(e.target.value)}
                 />
               </div>
@@ -224,7 +215,7 @@ const Dashboard: React.FC<Props> = ({ sales, pdvs, userName, userImage, onUpdate
                 onClick={handleSaveProfile} 
                 className="w-full bg-primary text-white py-4 rounded-2xl font-black uppercase text-sm shadow-xl shadow-primary/20 active:scale-95 transition-all"
               >
-                Atualizar Perfil
+                Salvar Cadastro
               </button>
               <button 
                 onClick={() => setIsEditingProfile(false)} 

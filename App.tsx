@@ -23,10 +23,12 @@ const App: React.FC = () => {
   const [sales, setSales] = useState<Sale[]>(() => JSON.parse(localStorage.getItem('tp_sales') || '[]'));
   const [truffles, setTruffles] = useState<Truffle[]>(() => JSON.parse(localStorage.getItem('tp_truffles') || JSON.stringify(MOCK_TRUFFLES)));
   const [pdvs, setPdvs] = useState<PDV[]>(() => JSON.parse(localStorage.getItem('tp_pdvs') || '[]'));
-  const [userName, setUserName] = useState(() => localStorage.getItem('tp_name') || 'Mariana');
-  const [userImage, setUserImage] = useState(() => localStorage.getItem('tp_image') || 'https://images.unsplash.com/photo-1494790108377-be9c29b29330');
+  
+  // Alterado para iniciar neutro
+  const [userName, setUserName] = useState(() => localStorage.getItem('tp_name') || 'Usuário');
+  const [userImage, setUserImage] = useState(() => localStorage.getItem('tp_image') || '');
+  
   const [isDarkMode, setIsDarkMode] = useState(() => localStorage.getItem('tp_theme') === 'dark');
-
   const [activePDVForSale, setActivePDVForSale] = useState<PDV | null>(null);
 
   useEffect(() => {
@@ -83,7 +85,6 @@ const App: React.FC = () => {
         {renderContent()}
       </main>
 
-      {/* PWA Prompts */}
       <InstallPrompt />
 
       {isMainView && (
