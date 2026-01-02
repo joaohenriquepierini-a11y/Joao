@@ -37,7 +37,7 @@ const Catalog: React.FC<Props> = ({ truffles, onSave, onDelete }) => {
     return (
       <div className="flex flex-col min-h-screen bg-background-light dark:bg-background-dark p-6 pb-20">
         <header className="flex items-center gap-4 mb-8">
-          <button onClick={() => setEditingTruffle(null)} className="size-11 flex items-center justify-center rounded-2xl bg-white dark:bg-surface-dark shadow-sm text-text-sub-light dark:text-text-sub-dark">
+          <button onClick={() => setEditingTruffle(null)} className="size-11 flex items-center justify-center rounded-2xl bg-white dark:bg-surface-dark shadow-sm text-text-sub-light dark:text-text-sub-dark border border-black/10">
             <span className="material-symbols-outlined">close</span>
           </button>
           <div>
@@ -50,7 +50,7 @@ const Catalog: React.FC<Props> = ({ truffles, onSave, onDelete }) => {
 
         <form onSubmit={handleSave} className="flex flex-col gap-6">
           <div className="flex justify-center">
-            <div className="relative size-32 rounded-[2.5rem] bg-white dark:bg-surface-dark shadow-lg border-2 border-primary/10 overflow-hidden flex items-center justify-center group">
+            <div className="relative size-32 rounded-[2.5rem] bg-white dark:bg-surface-dark shadow-lg border border-black/10 overflow-hidden flex items-center justify-center group">
               {editingTruffle.imageUrl ? (
                 <img src={editingTruffle.imageUrl} alt="Preview" className="w-full h-full object-cover" />
               ) : (
@@ -64,7 +64,7 @@ const Catalog: React.FC<Props> = ({ truffles, onSave, onDelete }) => {
               <label className="text-[10px] font-black text-text-sub-light dark:text-text-sub-dark uppercase tracking-widest ml-1">Nome do Produto</label>
               <input 
                 autoFocus
-                className="w-full bg-white dark:bg-surface-dark border-none rounded-2xl py-4 px-5 text-base shadow-sm focus:ring-2 focus:ring-primary/20 transition-all text-text-main-light dark:text-text-main-dark font-bold italic"
+                className="w-full bg-white dark:bg-surface-dark border border-black/10 rounded-2xl py-4 px-5 text-base shadow-sm focus:ring-2 focus:ring-primary/20 transition-all text-text-main-light dark:text-text-main-dark font-bold italic"
                 value={editingTruffle.name || ''}
                 onChange={e => setEditingTruffle({...editingTruffle, name: e.target.value})}
                 placeholder="Ex: Trufa Tradicional"
@@ -75,7 +75,7 @@ const Catalog: React.FC<Props> = ({ truffles, onSave, onDelete }) => {
             <div className="space-y-2">
               <label className="text-[10px] font-black text-text-sub-light dark:text-text-sub-dark uppercase tracking-widest ml-1">Sabor Específico</label>
               <input 
-                className="w-full bg-white dark:bg-surface-dark border-none rounded-2xl py-4 px-5 text-base shadow-sm focus:ring-2 focus:ring-primary/20 transition-all text-text-main-light dark:text-text-main-dark font-medium"
+                className="w-full bg-white dark:bg-surface-dark border border-black/10 rounded-2xl py-4 px-5 text-base shadow-sm focus:ring-2 focus:ring-primary/20 transition-all text-text-main-light dark:text-text-main-dark font-medium"
                 value={editingTruffle.flavor || ''}
                 onChange={e => setEditingTruffle({...editingTruffle, flavor: e.target.value})}
                 placeholder="Ex: Maracujá com Chocolate"
@@ -91,7 +91,7 @@ const Catalog: React.FC<Props> = ({ truffles, onSave, onDelete }) => {
                 <span className="absolute left-4 top-1/2 -translate-y-1/2 text-text-sub-light dark:text-text-sub-dark font-black text-xs">R$</span>
                 <input 
                   type="number" step="0.5"
-                  className="w-full bg-white dark:bg-surface-dark border-none rounded-2xl py-4 pl-10 pr-5 text-lg shadow-sm focus:ring-2 focus:ring-primary/20 transition-all text-text-main-light dark:text-text-main-dark font-black"
+                  className="w-full bg-white dark:bg-surface-dark border border-black/10 rounded-2xl py-4 pl-10 pr-5 text-lg shadow-sm focus:ring-2 focus:ring-primary/20 transition-all text-text-main-light dark:text-text-main-dark font-black"
                   value={editingTruffle.priceStreet || ''}
                   onChange={e => setEditingTruffle({...editingTruffle, priceStreet: Number(e.target.value)})}
                   placeholder="0,00"
@@ -105,7 +105,7 @@ const Catalog: React.FC<Props> = ({ truffles, onSave, onDelete }) => {
                 <span className="absolute left-4 top-1/2 -translate-y-1/2 text-text-sub-light dark:text-text-sub-dark font-black text-xs">R$</span>
                 <input 
                   type="number" step="0.5"
-                  className="w-full bg-white dark:bg-surface-dark border-none rounded-2xl py-4 pl-10 pr-5 text-lg shadow-sm focus:ring-2 focus:ring-primary/20 transition-all text-text-main-light dark:text-text-main-dark font-black"
+                  className="w-full bg-white dark:bg-surface-dark border border-black/10 rounded-2xl py-4 pl-10 pr-5 text-lg shadow-sm focus:ring-2 focus:ring-primary/20 transition-all text-text-main-light dark:text-text-main-dark font-black"
                   value={editingTruffle.pricePDV || ''}
                   onChange={e => setEditingTruffle({...editingTruffle, pricePDV: Number(e.target.value)})}
                   placeholder="0,00"
@@ -118,7 +118,7 @@ const Catalog: React.FC<Props> = ({ truffles, onSave, onDelete }) => {
           <div className="space-y-2">
             <label className="text-[10px] font-black text-text-sub-light dark:text-text-sub-dark uppercase tracking-widest ml-1">URL da Imagem (Opcional)</label>
             <input 
-              className="w-full bg-white dark:bg-surface-dark border-none rounded-2xl py-4 px-5 text-[10px] shadow-sm focus:ring-2 focus:ring-primary/20 transition-all text-text-main-light dark:text-text-main-dark font-medium"
+              className="w-full bg-white dark:bg-surface-dark border border-black/10 rounded-2xl py-4 px-5 text-[10px] shadow-sm focus:ring-2 focus:ring-primary/20 transition-all text-text-main-light dark:text-text-main-dark font-medium"
               value={editingTruffle.imageUrl || ''}
               onChange={e => setEditingTruffle({...editingTruffle, imageUrl: e.target.value})}
               placeholder="Cole o link de uma imagem aqui..."
@@ -133,7 +133,7 @@ const Catalog: React.FC<Props> = ({ truffles, onSave, onDelete }) => {
                   key={icon}
                   type="button"
                   onClick={() => setEditingTruffle({...editingTruffle, icon})}
-                  className={`size-12 shrink-0 rounded-xl flex items-center justify-center border-2 transition-all ${editingTruffle.icon === icon ? 'bg-primary border-primary text-white shadow-lg shadow-primary/20' : 'bg-white dark:bg-surface-dark border-transparent text-text-sub-light dark:text-text-sub-dark'}`}
+                  className={`size-12 shrink-0 rounded-xl flex items-center justify-center border-2 transition-all border-black/10 ${editingTruffle.icon === icon ? 'bg-primary border-primary text-white shadow-lg shadow-primary/20' : 'bg-white dark:bg-surface-dark border-transparent text-text-sub-light dark:text-text-sub-dark'}`}
                 >
                   <span className="material-symbols-outlined">{icon}</span>
                 </button>
@@ -144,7 +144,7 @@ const Catalog: React.FC<Props> = ({ truffles, onSave, onDelete }) => {
           <div className="mt-8 flex flex-col gap-3">
             <button 
               type="submit"
-              className="w-full h-14 bg-primary text-white rounded-2xl font-black text-lg shadow-xl shadow-primary/30 flex items-center justify-center gap-2 active:scale-95 transition-all"
+              className="w-full h-14 bg-primary text-white rounded-2xl font-black text-lg shadow-xl shadow-primary/30 flex items-center justify-center gap-2 active:scale-95 transition-all border border-black/10"
             >
               Salvar Alterações
               <span className="material-symbols-outlined">save</span>
@@ -166,21 +166,21 @@ const Catalog: React.FC<Props> = ({ truffles, onSave, onDelete }) => {
 
   return (
     <div className="flex flex-col gap-4 bg-background-light dark:bg-background-dark min-h-screen">
-      <header className="sticky top-0 z-40 bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-md px-6 py-6 border-b border-gray-100 dark:border-white/5 flex items-center justify-between">
+      <header className="sticky top-0 z-40 bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-md px-6 py-6 border-b border-black/10 dark:border-white/10 flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-black tracking-tight text-text-main-light dark:text-text-main-dark italic uppercase">Produtos</h1>
           <p className="text-[10px] font-black text-text-sub-light dark:text-text-sub-dark uppercase tracking-widest mt-1">Gestão de Sabores e Preços</p>
         </div>
         <button 
           onClick={() => setEditingTruffle({ icon: 'cookie' })}
-          className="size-11 flex items-center justify-center rounded-2xl bg-primary text-white shadow-lg shadow-primary/20 active:scale-90 transition-transform"
+          className="size-11 flex items-center justify-center rounded-2xl bg-primary text-white shadow-lg shadow-primary/20 active:scale-90 transition-transform border border-black/10"
         >
           <span className="material-symbols-outlined font-bold">add</span>
         </button>
       </header>
 
       <div className="px-6 py-4">
-        <div className="relative flex w-full items-center rounded-2xl bg-white dark:bg-surface-dark shadow-sm ring-1 ring-black/5 dark:ring-white/10 overflow-hidden h-14 group transition-all focus-within:ring-primary/40">
+        <div className="relative flex w-full items-center rounded-2xl bg-white dark:bg-surface-dark shadow-sm ring-1 ring-black/10 dark:ring-white/10 overflow-hidden h-14 group transition-all focus-within:ring-primary/40 border border-black/5">
           <div className="flex items-center justify-center pl-5 text-text-sub-light dark:text-text-sub-dark group-focus-within:text-primary">
             <span className="material-symbols-outlined text-2xl">search</span>
           </div>
@@ -197,7 +197,7 @@ const Catalog: React.FC<Props> = ({ truffles, onSave, onDelete }) => {
       <div className="px-6 pb-32">
         <div className="flex items-baseline justify-between mb-5 mt-2">
           <h2 className="text-[10px] font-black uppercase tracking-[0.25em] text-text-sub-light dark:text-text-sub-dark">Sabores em Linha</h2>
-          <span className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-md italic">{filtered.length} ATIVOS</span>
+          <span className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-md italic border border-black/5">{filtered.length} ATIVOS</span>
         </div>
 
         <div className="flex flex-col gap-4">
@@ -220,10 +220,10 @@ const Catalog: React.FC<Props> = ({ truffles, onSave, onDelete }) => {
 const TruffleConfigItem: React.FC<{ truffle: Truffle, onEdit: () => void }> = ({ truffle, onEdit }) => (
   <div 
     onClick={onEdit}
-    className="group relative flex items-center justify-between p-4 bg-white dark:bg-surface-dark rounded-[2.2rem] shadow-sm border border-gray-100 dark:border-white/5 transition-all active:scale-[0.97] cursor-pointer hover:border-primary/40"
+    className="group relative flex items-center justify-between p-4 bg-white dark:bg-surface-dark rounded-[2.2rem] shadow-sm border border-black/10 dark:border-white/10 transition-all active:scale-[0.97] cursor-pointer hover:border-primary/40"
   >
     <div className="flex items-center gap-4 overflow-hidden">
-      <div className="flex shrink-0 size-24 items-center justify-center rounded-[2rem] bg-background-light dark:bg-primary/10 text-primary border border-gray-100 dark:border-primary/10 group-hover:bg-primary group-hover:text-white transition-all duration-300 overflow-hidden shadow-inner">
+      <div className="flex shrink-0 size-24 items-center justify-center rounded-[2rem] bg-background-light dark:bg-primary/10 text-primary border border-black/5 dark:border-primary/10 group-hover:bg-primary group-hover:text-white transition-all duration-300 overflow-hidden shadow-inner">
         {truffle.imageUrl ? (
           <img src={truffle.imageUrl} alt={truffle.flavor} className="w-full h-full object-cover" />
         ) : (
@@ -239,7 +239,7 @@ const TruffleConfigItem: React.FC<{ truffle: Truffle, onEdit: () => void }> = ({
             <span className="text-[7px] font-black uppercase text-primary mb-0.5">RUA</span>
             <span className="font-black text-text-main-light dark:text-text-main-dark text-sm">R$ {truffle.priceStreet.toFixed(2)}</span>
           </div>
-          <div className="w-[1px] h-6 bg-gray-100 dark:bg-white/10 self-end"></div>
+          <div className="w-[1px] h-6 bg-black/5 dark:bg-white/10 self-end"></div>
           <div className="flex flex-col">
             <span className="text-[7px] font-black uppercase text-blue-400 mb-0.5">PDV</span>
             <span className="text-text-sub-light dark:text-text-sub-dark font-bold text-sm italic">R$ {truffle.pricePDV.toFixed(2)}</span>

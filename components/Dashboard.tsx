@@ -1,5 +1,5 @@
 
-import React, { useState, useRef, useMemo } from 'react';
+import React, { useState, useRef } from 'react';
 import { Sale, PDV } from '../types';
 
 interface Props {
@@ -21,7 +21,6 @@ const Dashboard: React.FC<Props> = ({ sales, pdvs, userName, userImage, onUpdate
   const DAY_IN_MS = 24 * 60 * 60 * 1000;
   const SEVEN_DAYS_IN_MS = 7 * DAY_IN_MS;
 
-  // Lógica de Lembrete de Backup
   const lastBackupTimestamp = Number(localStorage.getItem('tp_last_backup') || 0);
   const needsBackup = (now - lastBackupTimestamp) > SEVEN_DAYS_IN_MS;
 
@@ -82,7 +81,7 @@ const Dashboard: React.FC<Props> = ({ sales, pdvs, userName, userImage, onUpdate
         <div className="flex items-center gap-3">
           <button 
             onClick={() => setIsEditingProfile(true)}
-            className="size-12 rounded-full bg-cover bg-center border-2 border-primary/30 shadow-sm overflow-hidden active:scale-90 transition-transform bg-gray-100 dark:bg-surface-dark flex items-center justify-center" 
+            className="size-12 rounded-full bg-cover bg-center border border-black/10 shadow-sm overflow-hidden active:scale-90 transition-transform bg-surface-light/30 dark:bg-surface-dark flex items-center justify-center" 
             style={userImage ? { backgroundImage: `url("${userImage}")` } : {}}
           >
             {!userImage && <span className="material-symbols-outlined text-text-sub-light text-2xl">person</span>}
@@ -94,27 +93,27 @@ const Dashboard: React.FC<Props> = ({ sales, pdvs, userName, userImage, onUpdate
             </h2>
           </div>
         </div>
-        <div className="size-11 bg-white dark:bg-surface-dark rounded-2xl flex items-center justify-center shadow-sm border border-black/5 dark:border-white/5">
+        <div className="size-11 bg-surface-light/40 backdrop-blur-md dark:bg-surface-dark rounded-2xl flex items-center justify-center shadow-sm border border-black/10 dark:border-white/10">
           <span className="material-symbols-outlined text-primary">analytics</span>
         </div>
       </header>
 
-      {/* Alerta de Backup Semanal */}
       {needsBackup && (
         <section className="animate-in fade-in slide-in-from-top-4 duration-500">
-          <div className="bg-blue-500 text-white rounded-[2.5rem] p-6 shadow-xl shadow-blue-500/20 relative overflow-hidden">
-            <div className="absolute top-0 right-0 p-4 opacity-10">
-              <span className="material-symbols-outlined text-7xl transform rotate-12 font-black">cloud_upload</span>
+          <div className="bg-surface-light/30 backdrop-blur-xl dark:bg-surface-dark rounded-[3rem] p-8 shadow-sm border border-black/10 dark:border-white/10 relative overflow-hidden">
+            <div className="absolute top-0 right-0 p-8 opacity-[0.05]">
+              <span className="material-symbols-outlined text-9xl text-primary">cloud_upload</span>
             </div>
-            <div className="relative z-10 flex items-center gap-4">
-              <div className="size-12 bg-white/20 rounded-2xl flex items-center justify-center shrink-0">
-                <span className="material-symbols-outlined font-black">backup</span>
+            <div className="flex flex-col items-center text-center relative z-10">
+              <div className="px-4 py-1 rounded-full bg-primary/10 border border-black/5 mb-4">
+                <span className="text-[10px] font-black text-primary uppercase tracking-[0.2em]">Lembrete de Segurança</span>
               </div>
-              <div className="flex-1">
-                <span className="text-[10px] font-black uppercase tracking-[0.2em]">Lembrete de Segurança</span>
-                <h3 className="text-sm font-black leading-tight italic uppercase mt-1">
-                  Já faz uma semana! Faça um backup para não perder seus dados.
-                </h3>
+              <h3 className="text-sm font-black text-text-main-light dark:text-text-main-dark leading-tight italic uppercase max-w-[220px]">
+                Já faz uma semana! Faça um backup para não perder seus dados.
+              </h3>
+              <div className="mt-4 flex items-center gap-2 px-3 py-1.5 rounded-2xl bg-blue-500/10 text-blue-600 border border-blue-500/10">
+                <span className="material-symbols-outlined !text-sm font-black animate-pulse">backup</span>
+                <span className="text-[10px] font-black uppercase tracking-widest">Ação Necessária</span>
               </div>
             </div>
           </div>
@@ -123,7 +122,7 @@ const Dashboard: React.FC<Props> = ({ sales, pdvs, userName, userImage, onUpdate
 
       {criticalCities.length > 0 && (
         <section className="animate-bounce-short">
-          <div className="bg-red-500 text-white rounded-[2.5rem] p-6 shadow-xl shadow-red-500/20 relative overflow-hidden">
+          <div className="bg-red-500 text-white rounded-[2.5rem] p-6 shadow-xl shadow-red-500/20 relative overflow-hidden border border-black/10">
             <div className="absolute top-0 right-0 p-4 opacity-10">
               <span className="material-symbols-outlined text-7xl transform rotate-12 font-black">emergency_home</span>
             </div>
@@ -140,12 +139,12 @@ const Dashboard: React.FC<Props> = ({ sales, pdvs, userName, userImage, onUpdate
       )}
 
       <section>
-        <div className="bg-white dark:bg-surface-dark rounded-[3rem] p-8 shadow-sm border border-primary/5 relative overflow-hidden">
-          <div className="absolute top-0 right-0 p-8 opacity-[0.03]">
-            <span className="material-symbols-outlined text-9xl text-text-main-light dark:text-white">receipt_long</span>
+        <div className="bg-surface-light/30 backdrop-blur-xl dark:bg-surface-dark rounded-[3rem] p-8 shadow-sm border border-black/10 dark:border-white/10 relative overflow-hidden">
+          <div className="absolute top-0 right-0 p-8 opacity-[0.05]">
+            <span className="material-symbols-outlined text-9xl text-primary">receipt_long</span>
           </div>
           <div className="flex flex-col items-center text-center">
-            <div className="px-4 py-1 rounded-full bg-primary/10 border border-primary/10 mb-4">
+            <div className="px-4 py-1 rounded-full bg-primary/10 border border-black/5 mb-4">
               <span className="text-[10px] font-black text-primary uppercase tracking-[0.2em]">Faturamento do Mês</span>
             </div>
             <div className="flex items-baseline gap-1">
@@ -154,7 +153,7 @@ const Dashboard: React.FC<Props> = ({ sales, pdvs, userName, userImage, onUpdate
                 {currentTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
               </h1>
             </div>
-            <div className={`mt-4 flex items-center gap-2 px-3 py-1.5 rounded-2xl ${isUp ? 'bg-green-500/10 text-green-600' : 'bg-red-500/10 text-red-600'}`}>
+            <div className={`mt-4 flex items-center gap-2 px-3 py-1.5 rounded-2xl border border-black/5 ${isUp ? 'bg-green-500/10 text-green-600' : 'bg-red-500/10 text-red-600'}`}>
               <span className="material-symbols-outlined !text-sm font-black">
                 {isUp ? 'trending_up' : 'trending_down'}
               </span>
@@ -179,14 +178,14 @@ const Dashboard: React.FC<Props> = ({ sales, pdvs, userName, userImage, onUpdate
             </div>
           ) : (
             cityAbsence.slice(0, 5).map(city => (
-              <div key={city.name} className={`p-4 rounded-[2rem] border shadow-sm flex justify-between items-center transition-all ${city.daysSince > 28 ? 'bg-red-50 dark:bg-red-950/20 border-red-200' : 'bg-white dark:bg-surface-dark border-gray-100 dark:border-white/5'}`}>
+              <div key={city.name} className={`p-4 rounded-[2rem] border shadow-sm flex justify-between items-center transition-all ${city.daysSince > 28 ? 'bg-red-50 dark:bg-red-950/20 border-red-200' : 'bg-surface-light/40 backdrop-blur-md dark:bg-surface-dark border-black/10 dark:border-white/10'}`}>
                 <div className="flex items-center gap-3">
-                  <div className={`size-10 rounded-xl flex items-center justify-center ${city.daysSince > 28 ? 'bg-red-500 text-white' : 'bg-primary/10 text-primary'}`}>
+                  <div className={`size-10 rounded-xl flex items-center justify-center border border-black/5 ${city.daysSince > 28 ? 'bg-red-500 text-white' : 'bg-primary/10 text-primary'}`}>
                     <span className="material-symbols-outlined text-xl">location_on</span>
                   </div>
                   <div>
                     <h4 className="text-xs font-black uppercase italic leading-none">{city.name}</h4>
-                    <p className={`text-[9px] font-bold mt-1 uppercase ${city.daysSince > 28 ? 'text-red-500' : 'text-gray-400'}`}>
+                    <p className={`text-[9px] font-bold mt-1 uppercase ${city.daysSince > 28 ? 'text-red-500' : 'text-text-sub-light'}`}>
                       {city.daysSince === 0 ? 'Visitado hoje' : city.daysSince >= 999 ? 'Sem visitas registradas' : `${city.daysSince} dias sem visita`}
                     </p>
                   </div>
@@ -199,37 +198,28 @@ const Dashboard: React.FC<Props> = ({ sales, pdvs, userName, userImage, onUpdate
 
       {isEditingProfile && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/60 backdrop-blur-md">
-          <div className="bg-white dark:bg-surface-dark w-full max-w-xs rounded-[3xl] p-8 shadow-2xl animate-in zoom-in-95 duration-200">
+          <div className="bg-surface-light dark:bg-surface-dark w-full max-w-xs rounded-[3xl] p-8 shadow-2xl border border-black/10 animate-in zoom-in-95 duration-200">
             <h3 className="text-lg font-black uppercase italic text-center mb-8">Meu Perfil</h3>
             
             <div className="flex flex-col items-center gap-6 mb-8">
               <div className="relative group cursor-pointer" onClick={() => fileInputRef.current?.click()}>
                 <div 
-                  className="size-28 rounded-[2.5rem] bg-cover bg-center border-4 border-primary/20 shadow-xl overflow-hidden flex items-center justify-center bg-gray-100 dark:bg-white/5" 
+                  className="size-28 rounded-[2.5rem] bg-cover bg-center border border-black/10 shadow-xl overflow-hidden flex items-center justify-center bg-background-light dark:bg-white/5" 
                   style={tempImage ? { backgroundImage: `url("${tempImage}")` } : {}}
                 >
                   {!tempImage && <span className="material-symbols-outlined text-gray-400 text-5xl">person_add</span>}
-                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                    <span className="material-symbols-outlined text-white text-3xl">photo_camera</span>
-                  </div>
                 </div>
-                <div className="absolute -bottom-1 -right-1 size-10 bg-primary text-white rounded-2xl flex items-center justify-center border-4 border-white dark:border-surface-dark shadow-lg">
+                <div className="absolute -bottom-1 -right-1 size-10 bg-primary text-white rounded-2xl flex items-center justify-center border-2 border-white dark:border-surface-dark shadow-lg">
                   <span className="material-symbols-outlined text-lg">edit</span>
                 </div>
-                <input 
-                  type="file" 
-                  ref={fileInputRef} 
-                  className="hidden" 
-                  accept="image/*" 
-                  onChange={handleFileChange} 
-                />
+                <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileChange} />
               </div>
 
               <div className="w-full space-y-2">
                 <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2">Como quer ser chamado?</label>
                 <input 
                   type="text" 
-                  className="w-full bg-gray-50 dark:bg-white/5 border-none rounded-2xl p-4 text-center font-bold text-lg focus:ring-2 focus:ring-primary/40" 
+                  className="w-full bg-background-light/50 dark:bg-white/5 border border-black/5 rounded-2xl p-4 text-center font-bold text-lg focus:ring-2 focus:ring-primary/40" 
                   value={tempName} 
                   placeholder="Seu nome"
                   onChange={e => setTempName(e.target.value)}
@@ -240,7 +230,7 @@ const Dashboard: React.FC<Props> = ({ sales, pdvs, userName, userImage, onUpdate
             <div className="flex flex-col gap-3">
               <button 
                 onClick={handleSaveProfile} 
-                className="w-full bg-primary text-white py-4 rounded-2xl font-black uppercase text-sm shadow-xl shadow-primary/20 active:scale-95 transition-all"
+                className="w-full bg-primary text-white py-4 rounded-2xl font-black uppercase text-sm shadow-xl shadow-primary/20 active:scale-95 transition-all border border-black/5"
               >
                 Salvar Cadastro
               </button>

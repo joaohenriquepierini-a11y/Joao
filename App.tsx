@@ -67,7 +67,6 @@ const App: React.FC = () => {
   };
 
   const handleDeletePDV = (id: string) => {
-    // A confirmação agora é feita nos componentes filhos para permitir mensagens específicas
     setPdvs(prev => prev.filter(p => p.id !== id));
     if (activePDVForSale?.id === id) setActivePDVForSale(null);
     return true;
@@ -113,24 +112,24 @@ const App: React.FC = () => {
       <InstallPrompt />
 
       {isMainView && (
-        <nav className="fixed bottom-0 left-0 right-0 h-20 bg-white/80 dark:bg-surface-dark/80 backdrop-blur-xl border-t border-gray-100 dark:border-white/5 flex items-center justify-around z-50 px-2 pb-[env(safe-area-inset-bottom)]">
-          <button onClick={() => setView(View.DASHBOARD)} className={`flex flex-col items-center gap-1 w-full ${view === View.DASHBOARD ? 'text-primary' : 'text-gray-400'}`}>
+        <nav className="fixed bottom-0 left-0 right-0 h-20 bg-surface-light/40 dark:bg-surface-dark/80 backdrop-blur-2xl border-t border-black/10 dark:border-white/10 flex items-center justify-around z-50 px-2 pb-[env(safe-area-inset-bottom)]">
+          <button onClick={() => setView(View.DASHBOARD)} className={`flex flex-col items-center gap-1 w-full ${view === View.DASHBOARD ? 'text-primary' : 'text-text-sub-light'}`}>
             <span className={`material-symbols-outlined ${view === View.DASHBOARD ? 'material-symbols-filled' : ''}`}>dashboard</span>
             <span className="text-[8px] font-bold uppercase tracking-widest">Início</span>
           </button>
-          <button onClick={() => setView(View.HISTORY)} className={`flex flex-col items-center gap-1 w-full ${view === View.HISTORY ? 'text-primary' : 'text-gray-400'}`}>
+          <button onClick={() => setView(View.HISTORY)} className={`flex flex-col items-center gap-1 w-full ${view === View.HISTORY ? 'text-primary' : 'text-text-sub-light'}`}>
             <span className={`material-symbols-outlined ${view === View.HISTORY ? 'material-symbols-filled' : ''}`}>receipt_long</span>
             <span className="text-[8px] font-bold uppercase tracking-widest">Vendas</span>
           </button>
-          <button onClick={() => setView(View.CATALOG)} className={`flex flex-col items-center gap-1 w-full ${view === View.CATALOG ? 'text-primary' : 'text-gray-400'}`}>
+          <button onClick={() => setView(View.CATALOG)} className={`flex flex-col items-center gap-1 w-full ${view === View.CATALOG ? 'text-primary' : 'text-text-sub-light'}`}>
             <span className={`material-symbols-outlined ${view === View.CATALOG ? 'material-symbols-filled' : ''}`}>inventory_2</span>
             <span className="text-[8px] font-bold uppercase tracking-widest">Produtos</span>
           </button>
-          <button onClick={() => setView(View.LOGISTICS)} className={`flex flex-col items-center gap-1 w-full ${[View.LOGISTICS, View.PDV_DETAILS, View.CITY_DETAILS, View.REGISTER_PDV].includes(view) ? 'text-primary' : 'text-gray-400'}`}>
+          <button onClick={() => setView(View.LOGISTICS)} className={`flex flex-col items-center gap-1 w-full ${[View.LOGISTICS, View.PDV_DETAILS, View.CITY_DETAILS, View.REGISTER_PDV].includes(view) ? 'text-primary' : 'text-text-sub-light'}`}>
             <span className={`material-symbols-outlined ${[View.LOGISTICS, View.PDV_DETAILS, View.CITY_DETAILS].includes(view) ? 'material-symbols-filled' : ''}`}>store</span>
             <span className="text-[8px] font-bold uppercase tracking-widest">PDVs</span>
           </button>
-          <button onClick={() => setView(View.SETTINGS)} className={`flex flex-col items-center gap-1 w-full ${view === View.SETTINGS ? 'text-primary' : 'text-gray-400'}`}>
+          <button onClick={() => setView(View.SETTINGS)} className={`flex flex-col items-center gap-1 w-full ${view === View.SETTINGS ? 'text-primary' : 'text-text-sub-light'}`}>
             <span className={`material-symbols-outlined ${view === View.SETTINGS ? 'material-symbols-filled' : ''}`}>settings</span>
             <span className="text-[8px] font-bold uppercase tracking-widest">Ajustes</span>
           </button>
