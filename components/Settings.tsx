@@ -13,6 +13,7 @@ interface Props {
 
 const Settings: React.FC<Props> = ({ isDarkMode, onToggleTheme, userName, userImage, onUpdateName, onUpdateImage, onLogout }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const importInputRef = useRef<HTMLInputElement>(null);
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [isInstalled, setIsInstalled] = useState(false);
 
@@ -48,6 +49,69 @@ const Settings: React.FC<Props> = ({ isDarkMode, onToggleTheme, userName, userIm
     }
   };
 
+  // Lógica de Backup - Exportar
+  const handleExportBackup = () => {
+    const backupData = {
+      sales: JSON.parse(localStorage.getItem('tp_sales') || '[]'),
+      truffles: JSON.parse(localStorage.getItem('tp_truffles') || '[]'),
+      pdvs: JSON.parse(localStorage.getItem('tp_pdvs') || '[]'),
+      name: localStorage.getItem('tp_name') || 'Usuário',
+      image: localStorage.getItem('tp_image') || '',
+      theme: localStorage.getItem('tp_theme') || 'light',
+      version: '2.3.0',
+      exportDate: new Date().toISOString()
+    };
+
+    const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    const dateStr = new Date().toLocaleDateString('pt-BR').replace(/\//g, '-');
+    
+    link.href = url;
+    link.download = `trufa-pro-backup-${dateStr}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    alert('Backup gerado com sucesso! Salve este arquivo no seu Google Drive para segurança.');
+  };
+
+  // Lógica de Backup - Importar
+  const handleImportBackup = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!confirm('ATENÇÃO: Importar um backup irá substituir todos os dados atuais deste dispositivo. Deseja continuar?')) {
+      e.target.value = '';
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const data = JSON.parse(event.target?.result as string);
+        
+        // Validação básica
+        if (!data.sales || !data.truffles || !data.pdvs) {
+          throw new Error('Arquivo de backup inválido.');
+        }
+
+        localStorage.setItem('tp_sales', JSON.stringify(data.sales));
+        localStorage.setItem('tp_truffles', JSON.stringify(data.truffles));
+        localStorage.setItem('tp_pdvs', JSON.stringify(data.pdvs));
+        localStorage.setItem('tp_name', data.name || 'Usuário');
+        localStorage.setItem('tp_image', data.image || '');
+        localStorage.setItem('tp_theme', data.theme || 'light');
+        
+        alert('Backup restaurado com sucesso! O aplicativo será reiniciado.');
+        window.location.reload();
+      } catch (err) {
+        alert('Erro ao importar backup: arquivo corrompido ou formato inválido.');
+      }
+    };
+    reader.readAsText(file);
+  };
+
   return (
     <div className="flex flex-col bg-background-light dark:bg-background-dark min-h-screen">
       <header className="sticky top-0 z-40 bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-md px-6 py-8 border-b border-gray-100 dark:border-white/5">
@@ -78,6 +142,39 @@ const Settings: React.FC<Props> = ({ isDarkMode, onToggleTheme, userName, userIm
             </div>
           </section>
         )}
+
+        {/* NOVA SEÇÃO: BACKUP */}
+        <section>
+          <h2 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4 px-1 italic">Segurança de Dados</h2>
+          <div className="bg-white dark:bg-surface-dark rounded-[2.5rem] shadow-sm border border-gray-100 dark:border-white/5 overflow-hidden divide-y divide-gray-50 dark:divide-white/5">
+            <div onClick={handleExportBackup} className="flex items-center justify-between p-5 cursor-pointer hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
+              <div className="flex items-center gap-4">
+                <div className="size-10 rounded-xl flex items-center justify-center bg-blue-50 dark:bg-blue-900/20 text-blue-500">
+                  <span className="material-symbols-outlined">cloud_download</span>
+                </div>
+                <div className="text-left">
+                  <span className="text-xs font-black text-text-main-light dark:text-gray-200 uppercase italic leading-none block">Exportar Backup</span>
+                  <span className="text-[8px] font-bold text-gray-400 uppercase tracking-widest mt-1">Salvar dados no Google Drive</span>
+                </div>
+              </div>
+              <span className="material-symbols-outlined text-gray-300 text-sm">chevron_right</span>
+            </div>
+
+            <div onClick={() => importInputRef.current?.click()} className="flex items-center justify-between p-5 cursor-pointer hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
+              <div className="flex items-center gap-4">
+                <div className="size-10 rounded-xl flex items-center justify-center bg-orange-50 dark:bg-orange-900/20 text-orange-500">
+                  <span className="material-symbols-outlined">cloud_upload</span>
+                </div>
+                <div className="text-left">
+                  <span className="text-xs font-black text-text-main-light dark:text-gray-200 uppercase italic leading-none block">Restaurar Backup</span>
+                  <span className="text-[8px] font-bold text-gray-400 uppercase tracking-widest mt-1">Recuperar dados de um arquivo</span>
+                </div>
+              </div>
+              <input type="file" ref={importInputRef} className="hidden" accept=".json" onChange={handleImportBackup} />
+              <span className="material-symbols-outlined text-gray-300 text-sm">chevron_right</span>
+            </div>
+          </div>
+        </section>
 
         <section>
           <h2 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4 px-1 italic">Meu Cadastro</h2>
@@ -114,7 +211,6 @@ const Settings: React.FC<Props> = ({ isDarkMode, onToggleTheme, userName, userIm
             <SettingsToggle icon="dark_mode" label="Modo Escuro" checked={isDarkMode} onChange={onToggleTheme} />
             <SettingsAction icon="notifications" label="Notificações de Rota" value="Ativado" />
             
-            {/* Botão de Sair Reestilizado */}
             <button 
               onClick={onLogout} 
               className="w-full flex items-center justify-between p-5 cursor-pointer hover:bg-red-50 dark:hover:bg-red-950/10 transition-colors group"
@@ -134,7 +230,7 @@ const Settings: React.FC<Props> = ({ isDarkMode, onToggleTheme, userName, userIm
         </section>
 
         <div className="mt-4 flex flex-col items-center gap-2 opacity-30">
-          <p className="text-[10px] font-black text-gray-500 uppercase tracking-[0.3em]">Trufa Pro v2.2.0</p>
+          <p className="text-[10px] font-black text-gray-500 uppercase tracking-[0.3em]">Trufa Pro v2.3.0</p>
         </div>
       </main>
     </div>
