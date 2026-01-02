@@ -10,6 +10,7 @@ import CityDetails from './components/CityDetails';
 import RegisterSale from './components/RegisterSale';
 import Settings from './components/Settings';
 import RegisterPDV from './components/RegisterPDV';
+import InstallPrompt from './components/InstallPrompt';
 
 const MOCK_TRUFFLES: Truffle[] = [
   { id: '1', name: 'Trufa Tradicional', flavor: 'Chocolate ao Leite', priceStreet: 3.0, pricePDV: 3.5, icon: 'cookie' },
@@ -77,13 +78,16 @@ const App: React.FC = () => {
   const isMainView = [View.DASHBOARD, View.HISTORY, View.CATALOG, View.LOGISTICS, View.SETTINGS].includes(view);
 
   return (
-    <div className="max-w-md mx-auto min-h-screen relative flex flex-col bg-background-light dark:bg-background-dark transition-colors">
+    <div className="mx-auto min-h-screen relative flex flex-col bg-background-light dark:bg-background-dark transition-colors w-full max-w-md">
       <main className="flex-1 overflow-y-auto no-scrollbar">
         {renderContent()}
       </main>
 
+      {/* PWA Prompts */}
+      <InstallPrompt />
+
       {isMainView && (
-        <nav className="fixed bottom-0 left-0 right-0 h-20 bg-white/80 dark:bg-surface-dark/80 backdrop-blur-xl border-t border-gray-100 dark:border-white/5 flex items-center justify-around z-50 px-2">
+        <nav className="fixed bottom-0 left-0 right-0 h-20 bg-white/80 dark:bg-surface-dark/80 backdrop-blur-xl border-t border-gray-100 dark:border-white/5 flex items-center justify-around z-50 px-2 pb-[env(safe-area-inset-bottom)]">
           <button onClick={() => setView(View.DASHBOARD)} className={`flex flex-col items-center gap-1 w-full ${view === View.DASHBOARD ? 'text-primary' : 'text-gray-400'}`}>
             <span className={`material-symbols-outlined ${view === View.DASHBOARD ? 'material-symbols-filled' : ''}`}>dashboard</span>
             <span className="text-[8px] font-bold uppercase tracking-widest">Início</span>
