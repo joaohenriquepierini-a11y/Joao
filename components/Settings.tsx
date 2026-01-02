@@ -1,5 +1,5 @@
 
-import React, { useRef } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 
 interface Props {
   isDarkMode: boolean;
@@ -12,6 +12,29 @@ interface Props {
 
 const Settings: React.FC<Props> = ({ isDarkMode, onToggleTheme, userName, userImage, onUpdateName, onUpdateImage }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [isInstalled, setIsInstalled] = useState(false);
+
+  useEffect(() => {
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    });
+
+    if (window.matchMedia('(display-mode: standalone)').matches || (navigator as any).standalone) {
+      setIsInstalled(true);
+    }
+  }, []);
+
+  const handleInstallApp = async () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      if (outcome === 'accepted') {
+        setDeferredPrompt(null);
+      }
+    }
+  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -32,7 +55,35 @@ const Settings: React.FC<Props> = ({ isDarkMode, onToggleTheme, userName, userIm
       </header>
 
       <main className="p-6 flex flex-col gap-8 pb-32">
-        {/* SEÇÃO MEU PERFIL */}
+        {/* APP STATUS & INSTALLATION */}
+        {!isInstalled && (
+          <section>
+            <h2 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4 px-1 italic">Aplicativo</h2>
+            <div className="bg-primary/5 dark:bg-primary/10 rounded-[2.5rem] p-6 border-2 border-primary/20 shadow-sm flex flex-col gap-4">
+              <div className="flex items-center gap-4">
+                <div className="size-12 rounded-2xl bg-primary text-white flex items-center justify-center shadow-lg shadow-primary/20">
+                  <span className="material-symbols-outlined text-2xl">install_mobile</span>
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-sm font-black text-text-main-light dark:text-white uppercase italic leading-none">Trufa Pro no seu Celular</h3>
+                  <p className="text-[9px] text-primary font-bold mt-1 uppercase">Acesso rápido e funcionamento offline</p>
+                </div>
+              </div>
+              <button 
+                onClick={handleInstallApp}
+                className={`w-full h-12 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all ${deferredPrompt ? 'bg-primary text-white shadow-xl shadow-primary/20 active:scale-95' : 'bg-gray-100 dark:bg-white/5 text-gray-400 cursor-not-allowed'}`}
+              >
+                {deferredPrompt ? 'Instalar Agora' : 'Pronto para Instalação'}
+              </button>
+              {!deferredPrompt && (
+                <p className="text-[8px] text-center text-text-sub-light italic">
+                  Se o botão não ativar, use a opção "Adicionar à tela de início" do seu navegador.
+                </p>
+              )}
+            </div>
+          </section>
+        )}
+
         <section>
           <h2 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4 px-1 italic">Meu Perfil</h2>
           <div className="bg-white dark:bg-surface-dark rounded-[2.5rem] p-6 shadow-sm border border-gray-100 dark:border-white/5 flex items-center gap-5">
@@ -60,24 +111,6 @@ const Settings: React.FC<Props> = ({ isDarkMode, onToggleTheme, userName, userIm
         </section>
 
         <section>
-          <h2 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4 px-1 italic">Nuvem e Dados</h2>
-          <div className="bg-white dark:bg-surface-dark rounded-[2.5rem] p-6 shadow-sm border border-gray-100 dark:border-white/5 flex flex-col gap-4">
-            <div className="flex items-start gap-4">
-              <div className="size-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
-                <span className="material-symbols-outlined text-2xl">cloud_sync</span>
-              </div>
-              <div className="flex-1">
-                <h3 className="text-sm font-black text-text-main-light dark:text-white uppercase italic">Backup Seguro</h3>
-                <p className="text-[10px] text-gray-400 mt-1 leading-relaxed font-bold">Mantenha seu histórico seguro em sua conta Google.</p>
-              </div>
-            </div>
-            <button className="w-full h-12 bg-primary/10 text-primary font-black text-[10px] uppercase tracking-widest rounded-2xl active:scale-95 transition-all">
-              Conectar Google Drive
-            </button>
-          </div>
-        </section>
-
-        <section>
           <h2 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4 px-1 italic">Preferências</h2>
           <div className="bg-white dark:bg-surface-dark rounded-[2.5rem] shadow-sm border border-gray-100 dark:border-white/5 overflow-hidden divide-y divide-gray-50 dark:divide-white/5">
             <SettingsToggle icon="dark_mode" label="Modo Escuro" checked={isDarkMode} onChange={onToggleTheme} />
@@ -86,7 +119,7 @@ const Settings: React.FC<Props> = ({ isDarkMode, onToggleTheme, userName, userIm
         </section>
 
         <div className="mt-4 flex flex-col items-center gap-2 opacity-30">
-          <p className="text-[10px] font-black text-gray-500 uppercase tracking-[0.3em]">Trufa Pro v2.0.0</p>
+          <p className="text-[10px] font-black text-gray-500 uppercase tracking-[0.3em]">Trufa Pro v2.1.0</p>
           <div className="flex gap-4">
             <span className="material-symbols-outlined !text-sm">verified_user</span>
             <span className="material-symbols-outlined !text-sm">security</span>

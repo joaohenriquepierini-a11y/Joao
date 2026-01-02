@@ -10,15 +10,16 @@
   "orientation": "portrait",
   "icons": [
     {
-      "src": "https://api.screenshotone.com/take?url=https%3A%2F%2Fraw.githubusercontent.com%2Fgoogle%2Fmaterial-design-icons%2Fmaster%2Fpng%2Fcontent%2Farchive%2Fmaterialicons%2F512dp%2F2x%2Fbaseline_archive_black_512dp.png&access_key=dummy",
+      "src": "https://img.icons8.com/color/192/000000/chocolate-bar.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     },
     {
-      "src": "https://api.screenshotone.com/take?url=https%3A%2F%2Fraw.githubusercontent.com%2Fgoogle%2Fmaterial-design-icons%2Fmaster%2Fpng%2Fcontent%2Farchive%2Fmaterialicons%2F512dp%2F2x%2Fbaseline_archive_black_512dp.png&access_key=dummy",
+      "src": "https://img.icons8.com/color/512/000000/chocolate-bar.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
     }
   ]
 }
