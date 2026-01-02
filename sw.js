@@ -1,4 +1,3 @@
-
 const CACHE_NAME = 'trufa-pro-v2';
 const ASSETS = [
   './',
@@ -35,16 +34,26 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  // Para requisições de navegação (abrir o app), tenta o cache primeiro, depois rede, e fallback para index.html
+  // Lógica para Navegação (abrir o app ou atualizar)
   if (event.request.mode === 'navigate') {
     event.respondWith(
-      fetch(event.request).catch(() => {
-        return caches.match('./index.html');
-      })
+      fetch(event.request)
+        .then((response) => {
+          // Se o servidor retornar erro (404, 500, etc), tenta o cache
+          if (!response.ok) {
+            return caches.match('./index.html') || response;
+          }
+          return response;
+        })
+        .catch(() => {
+          // Se estiver offline, serve o index.html do cache
+          return caches.match('./index.html');
+        })
     );
     return;
   }
 
+  // Lógica para outros recursos (imagens, scripts, etc)
   event.respondWith(
     caches.match(event.request).then((response) => {
       return response || fetch(event.request);
