@@ -213,7 +213,6 @@ const Settings: React.FC<Props> = ({ isDarkMode, onToggleTheme, userName, userIm
           <h2 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4 px-1 italic">Preferências e Segurança</h2>
           <div className="bg-white dark:bg-surface-dark rounded-[2.5rem] shadow-sm border border-gray-100 dark:border-white/5 overflow-hidden divide-y divide-gray-50 dark:divide-white/5">
             <SettingsToggle icon="dark_mode" label="Modo Escuro" checked={isDarkMode} onChange={onToggleTheme} />
-            <SettingsAction icon="notifications" label="Notificações de Rota" value="Ativado" />
             
             <button 
               onClick={onLogout} 
@@ -253,21 +252,6 @@ const SettingsToggle: React.FC<{ icon: string, label: string, checked: boolean, 
       <input type="checkbox" checked={checked} onChange={onChange} className="sr-only peer" />
       <div className="w-12 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[4px] after:left-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary"></div>
     </label>
-  </div>
-);
-
-const SettingsAction: React.FC<{ icon: string, label: string, value?: string }> = ({ icon, label, value }) => (
-  <div className="flex items-center justify-between p-5 cursor-pointer hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
-    <div className="flex items-center gap-4">
-      <div className="size-10 rounded-xl flex items-center justify-center bg-gray-50 dark:bg-white/5 text-gray-400">
-        <span className="material-symbols-outlined">{icon}</span>
-      </div>
-      <span className="text-xs font-black text-text-main-light dark:text-gray-200 uppercase italic">{label}</span>
-    </div>
-    <div className="flex items-center gap-2">
-      {value && <span className="text-[10px] text-primary font-black uppercase tracking-widest">{value}</span>}
-      <span className="material-symbols-outlined text-gray-300 text-sm">chevron_right</span>
-    </div>
   </div>
 );
 
