@@ -2,7 +2,7 @@
   "name": "Trufa Pro Master",
   "short_name": "TrufaPro",
   "description": "Gestão Master de Vendas e Consignação de Trufas",
-  "start_url": "./",
+  "start_url": "/index.html",
   "display": "standalone",
   "background_color": "#fffafa",
   "theme_color": "#ff8fa3",
