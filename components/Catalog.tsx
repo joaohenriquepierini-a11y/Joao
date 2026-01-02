@@ -6,9 +6,10 @@ interface Props {
   truffles: Truffle[];
   onSave: (truffle: Truffle) => void;
   onDelete: (id: string) => void;
+  onBack: () => void;
 }
 
-const Catalog: React.FC<Props> = ({ truffles, onSave, onDelete }) => {
+const Catalog: React.FC<Props> = ({ truffles, onSave, onDelete, onBack }) => {
   const [search, setSearch] = useState('');
   const [editingTruffle, setEditingTruffle] = useState<Partial<Truffle> | null>(null);
 
@@ -167,9 +168,14 @@ const Catalog: React.FC<Props> = ({ truffles, onSave, onDelete }) => {
   return (
     <div className="flex flex-col gap-4 bg-background-light dark:bg-background-dark min-h-screen">
       <header className="sticky top-0 z-40 bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-md px-6 py-6 border-b border-black/10 dark:border-white/10 flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-black tracking-tight text-text-main-light dark:text-text-main-dark italic uppercase">Produtos</h1>
-          <p className="text-[10px] font-black text-text-sub-light dark:text-text-sub-dark uppercase tracking-widest mt-1">Gestão de Sabores e Preços</p>
+        <div className="flex items-center gap-4">
+          <button onClick={onBack} className="size-11 flex items-center justify-center rounded-2xl bg-surface-light/40 dark:bg-surface-dark shadow-sm text-text-sub-light border border-black/10 active:scale-90 transition-transform">
+            <span className="material-symbols-outlined">arrow_back</span>
+          </button>
+          <div>
+            <h1 className="text-2xl font-black tracking-tight text-text-main-light dark:text-text-main-dark italic uppercase">Produtos</h1>
+            <p className="text-[10px] font-black text-text-sub-light dark:text-text-sub-dark uppercase tracking-widest mt-1">Gestão de Sabores e Preços</p>
+          </div>
         </div>
         <button 
           onClick={() => setEditingTruffle({ icon: 'cookie' })}

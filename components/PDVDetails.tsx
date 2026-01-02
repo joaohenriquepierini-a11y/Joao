@@ -8,9 +8,10 @@ interface Props {
   truffles: Truffle[];
   onBack: () => void;
   onSelectPDVForSale: (pdv: PDV) => void;
+  onEditSale: (sale: Sale) => void;
 }
 
-const PDVDetails: React.FC<Props> = ({ pdv, sales, truffles, onBack, onSelectPDVForSale }) => {
+const PDVDetails: React.FC<Props> = ({ pdv, sales, truffles, onBack, onSelectPDVForSale, onEditSale }) => {
   if (!pdv) return null;
 
   const pdvSales = useMemo(() => {
@@ -103,7 +104,12 @@ const PDVDetails: React.FC<Props> = ({ pdv, sales, truffles, onBack, onSelectPDV
                   {month.sales.map((visit) => (
                     <div key={visit.id} className="bg-surface-light/40 backdrop-blur-md dark:bg-surface-dark p-5 rounded-[2.2rem] border border-black/10 dark:border-white/10 shadow-sm space-y-4">
                       <div className="flex justify-between items-center">
-                        <span className="text-[10px] font-black text-text-main-light dark:text-white uppercase italic">{visit.date}</span>
+                        <div className="flex items-center gap-2">
+                           <span className="text-[10px] font-black text-text-main-light dark:text-white uppercase italic">{visit.date}</span>
+                           <button onClick={() => onEditSale(visit)} className="size-8 rounded-full bg-primary/10 text-primary flex items-center justify-center border border-primary/10 active:scale-90 transition-transform">
+                              <span className="material-symbols-outlined !text-sm">edit</span>
+                           </button>
+                        </div>
                         <span className="text-sm font-black text-primary italic">R$ {visit.total.toFixed(2)}</span>
                       </div>
 
@@ -111,20 +117,26 @@ const PDVDetails: React.FC<Props> = ({ pdv, sales, truffles, onBack, onSelectPDV
                       <div className="grid grid-cols-2 gap-2">
                         {visit.items.map(item => {
                           const truffle = truffles.find(t => t.id === item.truffleId);
-                          if (!truffle || item.quantity === 0) return null;
+                          if (!truffle) return null;
+                          if (item.quantity === 0 && (item.leftOverQuantity || 0) === 0 && (item.newConsignedQuantity || 0) === 0) return null;
+                          
                           return (
-                            <div key={item.truffleId} className="bg-background-light/30 dark:bg-white/5 p-2 rounded-xl border border-black/5 flex items-center gap-2">
-                              <span className="material-symbols-outlined text-[10px] text-primary">{truffle.icon}</span>
-                              <div className="flex-1 min-w-0">
+                            <div key={item.truffleId} className="bg-background-light/30 dark:bg-white/5 p-2 rounded-xl border border-black/5 space-y-1">
+                              <div className="flex items-center gap-2">
+                                <span className="material-symbols-outlined text-[10px] text-primary">{truffle.icon}</span>
                                 <p className="text-[8px] font-black uppercase truncate leading-none">{truffle.flavor}</p>
-                                <p className="text-[9px] font-bold text-primary mt-0.5">{item.quantity} un</p>
+                              </div>
+                              <div className="flex flex-wrap justify-between text-[7px] font-bold text-text-sub-light uppercase px-0.5 gap-x-2">
+                                 <span className="text-green-500">V: {item.quantity}</span>
+                                 <span>S: {item.leftOverQuantity || 0}</span>
+                                 <span className="text-primary">D: {item.newConsignedQuantity || 0}</span>
                               </div>
                             </div>
                           );
                         })}
                       </div>
 
-                      {/* Observações - Campo que o usuário sentiu falta */}
+                      {/* Observações */}
                       {visit.observation && (
                         <div className="bg-primary/5 dark:bg-primary/10 p-4 rounded-2xl border border-primary/10 relative">
                           <span className="material-symbols-outlined absolute -top-2 -left-2 size-5 bg-primary text-white text-[10px] flex items-center justify-center rounded-full">comment</span>

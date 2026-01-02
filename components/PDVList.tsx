@@ -11,127 +11,145 @@ interface Props {
   onDeletePDV?: (id: string) => boolean;
 }
 
-type SortOption = 'time_desc' | 'time_asc' | 'qty_desc' | 'qty_asc';
-type FilterStatus = 'all' | 'no_sales';
+type ListMode = 'selection' | 'cities' | 'all';
 
 const PDVList: React.FC<Props> = ({ pdvs, sales, onNavigate, onSelectPDVForSale, onShowPDVHistory, onDeletePDV }) => {
-  const [isManageMode, setIsManageMode] = useState(false);
   const [search, setSearch] = useState('');
-  const [sortBy, setSortBy] = useState<SortOption>('time_desc');
-  const [filterStatus, setFilterStatus] = useState<FilterStatus>('all');
-  const [activeTab, setActiveTab] = useState<'cities' | 'all'>('cities');
+  const [isManageMode, setIsManageMode] = useState(false);
+  const [mode, setMode] = useState<ListMode>('selection');
 
   const getPDVStats = (pdv: PDV) => {
     const pdvSales = sales.filter(s => s.location.toLowerCase() === pdv.companyName.toLowerCase() && s.type === 'PDV');
-    if (pdvSales.length === 0) return { efficiency: 0, lastConsigned: 0, lastVisit: 'AGUARDANDO', daysSince: 999, totalRevenue: 0, isFuture: true };
+    if (pdvSales.length === 0) return { efficiency: 0, daysSince: 9999, totalRevenue: 0, isFuture: true };
     const lastSale = [...pdvSales].sort((a, b) => b.timestamp - a.timestamp)[0];
     const totalRevenue = pdvSales.reduce((sum, s) => sum + s.total, 0);
     const daysSince = Math.floor((Date.now() - lastSale.timestamp) / (1000 * 60 * 60 * 24));
-    let totalSold = 0; let totalLeftOver = 0;
-    pdvSales.forEach(sale => { sale.items.forEach(item => { totalSold += item.quantity || 0; totalLeftOver += item.leftOverQuantity || 0; }); });
-    const efficiency = (totalSold + totalLeftOver) > 0 ? (totalSold / (totalSold + totalLeftOver)) * 100 : 0;
-    return { efficiency, lastConsigned: 0, lastVisit: lastSale.date, daysSince, totalRevenue, isFuture: false };
+    return { efficiency: 0, daysSince, totalRevenue, isFuture: false };
   };
 
   const processedPdvs = useMemo(() => {
     let list = pdvs.map(p => ({ ...p, stats: getPDVStats(p) }));
-    if (filterStatus === 'no_sales') list = list.filter(p => p.stats.isFuture);
-    if (search) list = list.filter(p => p.companyName.toLowerCase().includes(search.toLowerCase()) || p.city.toLowerCase().includes(search.toLowerCase()) || (p.phone && p.phone.includes(search)));
-    list.sort((a, b) => {
-      switch (sortBy) {
-        case 'time_desc': return a.stats.daysSince - b.stats.daysSince;
-        case 'time_asc': return b.stats.daysSince - a.stats.daysSince;
-        case 'qty_desc': return b.stats.totalRevenue - a.stats.totalRevenue;
-        case 'qty_asc': return a.stats.totalRevenue - b.stats.totalRevenue;
-        default: return 0;
+    if (search) {
+      list = list.filter(p => 
+        p.companyName.toLowerCase().includes(search.toLowerCase()) || 
+        p.city.toLowerCase().includes(search.toLowerCase())
+      );
+    }
+    // Ordena do que faz MAIS tempo que foi visitado para o que faz MENOS tempo
+    return list.sort((a, b) => b.stats.daysSince - a.stats.daysSince);
+  }, [pdvs, sales, search]);
+
+  const cityGroups = useMemo(() => {
+    const groups: Record<string, { pdvs: typeof processedPdvs, maxDays: number }> = {};
+    
+    processedPdvs.forEach(p => {
+      if (!groups[p.city]) {
+        groups[p.city] = { pdvs: [], maxDays: 0 };
+      }
+      groups[p.city].pdvs.push(p);
+      // Armazena o maior atraso da cidade para ordenar o grupo
+      if (p.stats.daysSince > groups[p.city].maxDays) {
+        groups[p.city].maxDays = p.stats.daysSince;
       }
     });
-    return list;
-  }, [pdvs, sales, search, sortBy, filterStatus]);
 
-  const cityAnalysis = useMemo(() => {
-    const cities = Array.from(new Set(processedPdvs.map(p => p.city)));
-    return cities.map(cityName => {
-      const cityPdvs = processedPdvs.filter(p => p.city === cityName);
-      const cityRevenue = cityPdvs.reduce((acc, p) => acc + p.stats.totalRevenue, 0);
-      return { name: cityName, pdvs: cityPdvs, revenue: cityRevenue };
-    }).sort((a, b) => b.revenue - a.revenue);
+    // Ordena as cidades pela "negligência" (cidade com PDV mais atrasado vem primeiro)
+    return Object.entries(groups).sort((a, b) => b[1].maxDays - a[1].maxDays);
   }, [processedPdvs]);
 
   const handleDelete = (e: React.MouseEvent, pdv: PDV) => {
     e.stopPropagation();
-    if (onDeletePDV && window.confirm(`Deseja remover ${pdv.companyName}?`)) onDeletePDV(pdv.id);
+    if (onDeletePDV && window.confirm(`Remover PDV?`)) onDeletePDV(pdv.id);
   };
 
+  // TELA DE SELEÇÃO (OS 2 QUADRADOS)
+  if (mode === 'selection') {
+    return (
+      <div className="flex flex-col gap-6 bg-background-light dark:bg-background-dark min-h-screen p-6 pb-44">
+        <header className="pt-4 mb-4">
+          <h1 className="text-2xl font-black tracking-tight text-text-main-light dark:text-white uppercase italic leading-none">PDVs</h1>
+          <p className="text-[10px] text-primary font-bold uppercase tracking-widest mt-2 italic">Gestão de Pontos de Venda</p>
+        </header>
+
+        <div className="grid grid-cols-2 gap-4 h-48">
+          <button 
+            onClick={() => setMode('cities')}
+            className="flex flex-col items-center justify-center gap-4 bg-white/40 backdrop-blur-md dark:bg-surface-dark rounded-[2.5rem] border border-black/10 shadow-sm active:scale-95 transition-all group"
+          >
+            <div className="size-14 rounded-2xl bg-blue-500/10 text-blue-500 flex items-center justify-center group-hover:bg-blue-500 group-hover:text-white transition-colors">
+              <span className="material-symbols-outlined text-3xl">location_city</span>
+            </div>
+            <span className="text-[10px] font-black uppercase tracking-widest text-text-main-light dark:text-white italic">Por Cidades</span>
+          </button>
+
+          <button 
+            onClick={() => setMode('all')}
+            className="flex flex-col items-center justify-center gap-4 bg-white/40 backdrop-blur-md dark:bg-surface-dark rounded-[2.5rem] border border-black/10 shadow-sm active:scale-95 transition-all group"
+          >
+            <div className="size-14 rounded-2xl bg-primary/10 text-primary flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-colors">
+              <span className="material-symbols-outlined text-3xl">storefront</span>
+            </div>
+            <span className="text-[10px] font-black uppercase tracking-widest text-text-main-light dark:text-white italic">Todos os PDVs</span>
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // TELA DE LISTAGEM (CIDADES OU TODOS)
   return (
     <div className="flex flex-col gap-6 bg-background-light dark:bg-background-dark min-h-screen pb-44">
-      <header className="sticky top-0 z-40 bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-md border-b border-black/10 dark:border-white/10">
-        <div className="px-6 py-6 flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-black tracking-tight text-text-main-light dark:text-text-main-dark italic uppercase leading-none">Logística Master</h1>
-            <p className="text-[10px] text-primary font-bold uppercase tracking-widest mt-1 italic">Gestão de Rota e PDVs</p>
+      <header className="sticky top-0 z-40 bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-md border-b border-black/10 dark:border-white/10 px-6 py-6">
+        <div className="flex items-center gap-4 mb-6">
+          <button onClick={() => setMode('selection')} className="size-10 flex items-center justify-center rounded-xl bg-surface-light/40 border border-black/5 text-text-sub-light active:scale-90">
+            <span className="material-symbols-outlined">arrow_back</span>
+          </button>
+          <div className="flex-1">
+            <h1 className="text-xl font-black tracking-tight text-text-main-light dark:text-white uppercase italic leading-none">
+              {mode === 'cities' ? 'Por Cidades' : 'Todos os PDVs'}
+            </h1>
+            <p className="text-[8px] text-primary font-bold uppercase tracking-widest mt-1 italic">Organizado por tempo de visita</p>
           </div>
-          <div className="flex gap-2">
-            <button onClick={() => setIsManageMode(!isManageMode)} className={`size-11 rounded-2xl flex items-center justify-center transition-all border border-black/10 ${isManageMode ? 'bg-red-500 text-white shadow-lg' : 'bg-surface-light/40 dark:bg-white/5 text-text-sub-light shadow-sm'}`}>
-              <span className="material-symbols-outlined">{isManageMode ? 'close' : 'delete_sweep'}</span>
-            </button>
-            <button onClick={() => onNavigate(View.REGISTER_PDV)} className="size-11 bg-primary text-white rounded-2xl shadow-lg flex items-center justify-center active:scale-90 transition-transform border border-black/10">
-              <span className="material-symbols-outlined font-bold">add_business</span>
-            </button>
-          </div>
+          <button onClick={() => setIsManageMode(!isManageMode)} className={`size-10 rounded-xl flex items-center justify-center transition-all border border-black/10 ${isManageMode ? 'bg-red-500 text-white' : 'bg-surface-light/40 text-text-sub-light'}`}>
+            <span className="material-symbols-outlined !text-base">{isManageMode ? 'close' : 'delete'}</span>
+          </button>
         </div>
 
-        <div className="px-6 pb-6 space-y-4">
-          <div className="relative group">
-            <span className="absolute left-4 top-1/2 -translate-y-1/2 material-symbols-outlined text-text-sub-light/50 group-focus-within:text-primary transition-colors">search</span>
-            <input className="w-full bg-surface-light/40 backdrop-blur-md dark:bg-surface-dark border border-black/10 rounded-2xl py-4 pl-12 pr-4 text-xs font-bold shadow-sm focus:ring-2 focus:ring-primary/20 placeholder:text-text-sub-light/40" placeholder="Localizar PDV, Cidade ou Telefone..." value={search} onChange={(e) => setSearch(e.target.value)} />
-          </div>
-
-          <div className="flex flex-col gap-3">
-            <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-1">
-               <button onClick={() => setFilterStatus('all')} className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase transition-all whitespace-nowrap border border-black/10 ${filterStatus === 'all' ? 'bg-primary text-white shadow-md' : 'bg-surface-light/50 dark:bg-white/5 text-text-sub-light'}`}>Todos</button>
-               <button onClick={() => setFilterStatus('no_sales')} className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase transition-all whitespace-nowrap flex items-center gap-2 border border-black/10 ${filterStatus === 'no_sales' ? 'bg-orange-500 text-white shadow-md' : 'bg-surface-light/50 dark:bg-white/5 text-text-sub-light'}`}>
-                 <span className="material-symbols-outlined !text-xs">new_releases</span> Futuros
-               </button>
-            </div>
-          </div>
-        </div>
-
-        <div className="px-6 pb-4">
-          <div className="grid grid-cols-2 gap-3">
-             <button onClick={() => setActiveTab('cities')} className={`p-4 rounded-3xl flex flex-col items-center gap-2 transition-all border-2 ${activeTab === 'cities' ? 'bg-blue-500/10 border-blue-500 text-blue-500' : 'bg-surface-light/40 backdrop-blur-md dark:bg-surface-dark border-black/10 text-text-sub-light shadow-sm'}`}>
-               <span className="material-symbols-outlined text-2xl">location_city</span>
-               <span className="text-[10px] font-black uppercase tracking-tighter">Por Cidades</span>
-             </button>
-             <button onClick={() => setActiveTab('all')} className={`p-4 rounded-3xl flex flex-col items-center gap-2 transition-all border-2 ${activeTab === 'all' ? 'bg-primary/10 border-primary text-primary' : 'bg-surface-light/40 backdrop-blur-md dark:bg-surface-dark border-black/10 text-text-sub-light shadow-sm'}`}>
-               <span className="material-symbols-outlined text-2xl">storefront</span>
-               <span className="text-[10px] font-black uppercase tracking-tighter">Todos os PDVs</span>
-             </button>
-          </div>
+        <div className="relative">
+          <span className="absolute left-4 top-1/2 -translate-y-1/2 material-symbols-outlined text-text-sub-light/50">search</span>
+          <input className="w-full bg-white/40 dark:bg-surface-dark border border-black/10 rounded-2xl py-3 pl-11 pr-4 text-xs font-bold shadow-sm" placeholder="Buscar parceiro..." value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
       </header>
 
-      <main className="px-6">
-        {activeTab === 'cities' ? (
-          <div className="space-y-10">
-            {cityAnalysis.map(city => (
-              <section key={city.name} className="space-y-4">
-                <div className="flex items-center justify-between px-2">
-                  <div className="flex items-center gap-2">
-                    <div className="size-2 rounded-full bg-blue-500"></div>
-                    <h2 className="text-sm font-black text-text-main-light dark:text-white uppercase italic tracking-tighter">{city.name}</h2>
-                  </div>
-                  <p className="text-[10px] font-black text-blue-500 italic">R$ {city.revenue.toFixed(2)}</p>
-                </div>
-                <div className="grid grid-cols-1 gap-4">
-                  {city.pdvs.map(pdv => <PDVCard key={pdv.id} pdv={pdv} isManageMode={isManageMode} onDelete={handleDelete} onSelect={onSelectPDVForSale} onHistory={onShowPDVHistory} />)}
-                </div>
-              </section>
-            ))}
+      <main className="px-6 space-y-8">
+        {mode === 'all' ? (
+          <div className="space-y-4">
+            {processedPdvs.length === 0 ? (
+              <div className="py-20 text-center opacity-30 italic">Nenhum PDV encontrado.</div>
+            ) : (
+              processedPdvs.map(pdv => <PDVVisitCard key={pdv.id} pdv={pdv} isManageMode={isManageMode} onDelete={handleDelete} onShowPDVHistory={onShowPDVHistory} />)
+            )}
           </div>
         ) : (
-          <div className="space-y-4">
-            {processedPdvs.map(pdv => <PDVCard key={pdv.id} pdv={pdv} isManageMode={isManageMode} onDelete={handleDelete} onSelect={onSelectPDVForSale} onHistory={onShowPDVHistory} />)}
+          <div className="space-y-10">
+            {cityGroups.length === 0 ? (
+               <div className="py-20 text-center opacity-30 italic">Nenhuma cidade cadastrada.</div>
+            ) : (
+              cityGroups.map(([cityName, data]) => (
+                <section key={cityName} className="space-y-4">
+                  <div className="flex items-center gap-2 px-2">
+                    <div className={`size-1.5 rounded-full ${data.maxDays > 28 ? 'bg-red-500' : 'bg-blue-400'}`}></div>
+                    <h2 className="text-xs font-black text-text-sub-light dark:text-white uppercase italic tracking-widest">{cityName}</h2>
+                    <span className="text-[8px] font-bold text-blue-500 bg-blue-500/10 px-2 py-0.5 rounded-md border border-blue-500/10 ml-auto">
+                      {data.pdvs.length} {data.pdvs.length === 1 ? 'PDV' : 'PDVS'}
+                    </span>
+                  </div>
+                  <div className="space-y-4">
+                    {data.pdvs.map(pdv => <PDVVisitCard key={pdv.id} pdv={pdv} isManageMode={isManageMode} onDelete={handleDelete} onShowPDVHistory={onShowPDVHistory} />)}
+                  </div>
+                </section>
+              ))
+            )}
           </div>
         )}
       </main>
@@ -139,42 +157,31 @@ const PDVList: React.FC<Props> = ({ pdvs, sales, onNavigate, onSelectPDVForSale,
   );
 };
 
-const PDVCard: React.FC<{ pdv: any, isManageMode: boolean, onDelete: any, onSelect: any, onHistory: any }> = ({ pdv, isManageMode, onDelete, onSelect, onHistory }) => (
-  <div onClick={() => !isManageMode && onSelect(pdv)} className={`group relative flex flex-col p-5 bg-surface-light/40 backdrop-blur-md dark:bg-surface-dark rounded-[2.2rem] border transition-all shadow-sm ${isManageMode ? 'border-red-500/50 scale-[0.98]' : 'border-black/10 dark:border-white/10 active:scale-[0.98] cursor-pointer'}`}>
+const PDVVisitCard: React.FC<{ pdv: any, isManageMode: boolean, onDelete: any, onShowPDVHistory: any }> = ({ pdv, isManageMode, onDelete, onShowPDVHistory }) => (
+  <div 
+    onClick={() => !isManageMode && onShowPDVHistory(pdv)}
+    className={`relative p-5 bg-white/40 backdrop-blur-md dark:bg-surface-dark rounded-[2.2rem] border transition-all active:scale-[0.98] cursor-pointer shadow-sm ${isManageMode ? 'border-red-500/30' : 'border-black/10 dark:border-white/10'}`}
+  >
     {isManageMode && (
-      <button onClick={(e) => onDelete(e, pdv)} className="absolute -top-2 -right-2 size-10 bg-red-500 text-white rounded-full shadow-lg flex items-center justify-center z-10 border border-black/10">
-        <span className="material-symbols-outlined !text-lg">delete</span>
+      <button onClick={(e) => onDelete(e, pdv)} className="absolute -top-2 -right-2 size-8 bg-red-500 text-white rounded-full shadow-lg flex items-center justify-center z-10 border border-black/10">
+        <span className="material-symbols-outlined !text-sm">close</span>
       </button>
     )}
-    <div className="flex justify-between items-start mb-4">
-      <div className="flex-1 min-w-0 pr-2">
-        <div className="flex items-center gap-2">
-          <h4 className={`text-sm font-black uppercase italic leading-none truncate ${isManageMode ? 'text-red-500' : 'text-text-main-light dark:text-white'}`}>{pdv.companyName}</h4>
-          {pdv.phone && (
-            <span className="material-symbols-outlined text-[12px] text-green-500" title={pdv.phone}>verified_user</span>
-          )}
-        </div>
-        <p className="text-[9px] font-bold text-text-sub-light mt-1.5 uppercase truncate tracking-widest">{pdv.city} • {pdv.contactName}</p>
+    <div className="flex justify-between items-start">
+      <div className="flex-1 min-w-0 pr-4">
+        <h4 className="text-sm font-black uppercase italic leading-none truncate">{pdv.companyName}</h4>
+        <p className="text-[9px] font-bold text-text-sub-light mt-1.5 uppercase truncate tracking-widest">{pdv.contactName}</p>
       </div>
-      <div className="text-right flex flex-col items-end gap-1">
-        <div className={`text-base font-black italic ${pdv.stats.efficiency >= 75 ? 'text-green-500' : 'text-primary'}`}>{pdv.stats.isFuture ? '0%' : `${Math.round(pdv.stats.efficiency)}%`}</div>
-        {!isManageMode && (
-          <button 
-            onClick={(e) => { e.stopPropagation(); onHistory(pdv); }} 
-            className="size-8 rounded-lg bg-surface-light/60 dark:bg-white/5 border border-black/5 flex items-center justify-center text-text-sub-light hover:text-primary transition-colors"
-          >
-            <span className="material-symbols-outlined !text-base">history</span>
-          </button>
-        )}
+      <div className="text-right">
+         <p className={`text-[10px] font-black uppercase italic ${pdv.stats.daysSince > 28 ? 'text-red-500' : 'text-primary'}`}>
+            {pdv.stats.isFuture ? 'AGUARDANDO' : `${pdv.stats.daysSince} DIAS`}
+         </p>
+         <span className="text-[7px] text-gray-400 uppercase font-black">Sem visita</span>
       </div>
     </div>
-    <div className="flex items-center justify-between pt-4 border-t border-black/5 dark:border-white/5">
-      <div className="flex items-center gap-2">
-        <span className={`text-[8px] font-black uppercase tracking-widest ${pdv.stats.isFuture ? 'text-orange-500' : 'text-text-sub-light'}`}>
-          {pdv.stats.isFuture ? 'PDV Futuro' : `${pdv.stats.daysSince} dias s/ visita`}
-        </span>
-      </div>
-      <span className="text-[8px] font-black uppercase px-2 py-0.5 rounded-md bg-primary/10 text-primary border border-black/5">R$ {pdv.stats.totalRevenue.toFixed(0)}</span>
+    <div className="flex items-center justify-between pt-4 mt-4 border-t border-black/5 dark:border-white/5">
+      <span className="text-[8px] font-black text-text-sub-light/60 uppercase tracking-widest">Rever acertos anteriores</span>
+      <span className="material-symbols-outlined text-sm text-primary">history</span>
     </div>
   </div>
 );

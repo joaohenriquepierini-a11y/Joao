@@ -1,5 +1,5 @@
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useMemo } from 'react';
 import { Sale, PDV } from '../types';
 
 interface Props {
@@ -9,9 +9,10 @@ interface Props {
   userImage: string;
   onUpdateName: (name: string) => void;
   onUpdateImage: (image: string) => void;
+  onStartStreetSale: () => void;
 }
 
-const Dashboard: React.FC<Props> = ({ sales, pdvs, userName, userImage, onUpdateName, onUpdateImage }) => {
+const Dashboard: React.FC<Props> = ({ sales, pdvs, userName, userImage, onUpdateName, onUpdateImage, onStartStreetSale }) => {
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [tempName, setTempName] = useState(userName === 'Usuário' ? '' : userName);
   const [tempImage, setTempImage] = useState(userImage);
@@ -25,12 +26,26 @@ const Dashboard: React.FC<Props> = ({ sales, pdvs, userName, userImage, onUpdate
   const needsBackup = (now - lastBackupTimestamp) > SEVEN_DAYS_IN_MS;
 
   const dateNow = new Date();
+  const todayStart = new Date(new Date().setHours(0, 0, 0, 0)).getTime();
   const firstDayThisMonth = new Date(dateNow.getFullYear(), dateNow.getMonth(), 1).getTime();
   const firstDayLastMonth = new Date(dateNow.getFullYear(), dateNow.getMonth() - 1, 1).getTime();
   const lastDayLastMonth = firstDayThisMonth - 1;
 
+  // Cálculos de Faturamento
+  const todaySales = sales.filter(s => s.timestamp >= todayStart);
+  const todayTotal = todaySales.reduce((acc, curr) => acc + curr.total, 0);
+
   const currentMonthSales = sales.filter(s => s.timestamp >= firstDayThisMonth);
   const currentTotal = currentMonthSales.reduce((acc, curr) => acc + curr.total, 0);
+
+  // Detalhamento Mensal (Rua vs PDV)
+  const monthlyStreetTotal = currentMonthSales
+    .filter(s => s.type === 'Rua')
+    .reduce((acc, curr) => acc + curr.total, 0);
+  
+  const monthlyPdvTotal = currentMonthSales
+    .filter(s => s.type === 'PDV')
+    .reduce((acc, curr) => acc + curr.total, 0);
 
   const lastMonthSales = sales.filter(s => s.timestamp >= firstDayLastMonth && s.timestamp <= lastDayLastMonth);
   const lastMonthTotal = lastMonthSales.reduce((acc, curr) => acc + curr.total, 0);
@@ -38,25 +53,25 @@ const Dashboard: React.FC<Props> = ({ sales, pdvs, userName, userImage, onUpdate
   const diffPercent = lastMonthTotal > 0 ? ((currentTotal - lastMonthTotal) / lastMonthTotal) * 100 : 0;
   const isUp = currentTotal >= lastMonthTotal;
 
-  const registeredPdvCities: string[] = Array.from(new Set(pdvs.map(p => p.city)));
-
-  const citiesData = registeredPdvCities.reduce<Record<string, number>>((acc, cityName: string) => {
-    const lastPdvSaleInCity = sales
-      .filter(s => s.type === 'PDV' && s.city === cityName)
-      .sort((a, b) => b.timestamp - a.timestamp)[0];
-    acc[cityName] = lastPdvSaleInCity ? lastPdvSaleInCity.timestamp : 0;
-    return acc;
-  }, {});
-
-  const cityAbsence = Object.entries(citiesData)
-    .map(([name, lastVisit]) => ({
-      name,
-      daysSince: lastVisit === 0 ? 999 : Math.floor((now - lastVisit) / DAY_IN_MS),
-      lastVisit
-    }))
-    .sort((a, b) => b.daysSince - a.daysSince);
-
-  const criticalCities = cityAbsence.filter(c => c.daysSince > 28);
+  // Lógica de Ranking de Cidades por "Tempo Trabalhado" (Total de visitas na cidade)
+  const cityActivityRanking = useMemo(() => {
+    const cities: string[] = Array.from(new Set(pdvs.map(p => p.city)));
+    
+    return cities.map(cityName => {
+      const citySales = sales.filter(s => 
+        s.type === 'PDV' && 
+        s.city.toLowerCase() === cityName.toLowerCase()
+      );
+      const cityPdvs = pdvs.filter(p => p.city.toLowerCase() === cityName.toLowerCase());
+      
+      return {
+        name: cityName,
+        visitCount: citySales.length,
+        pdvCount: cityPdvs.length,
+        totalRevenue: citySales.reduce((acc, s) => acc + s.total, 0)
+      };
+    }).sort((a, b) => b.visitCount - a.visitCount);
+  }, [pdvs, sales]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -93,9 +108,14 @@ const Dashboard: React.FC<Props> = ({ sales, pdvs, userName, userImage, onUpdate
             </h2>
           </div>
         </div>
-        <div className="size-11 bg-surface-light/40 backdrop-blur-md dark:bg-surface-dark rounded-2xl flex items-center justify-center shadow-sm border border-black/10 dark:border-white/10">
-          <span className="material-symbols-outlined text-primary">analytics</span>
-        </div>
+        
+        <button 
+          onClick={onStartStreetSale}
+          className="group flex flex-col items-center justify-center size-14 bg-primary text-white rounded-2xl shadow-lg shadow-primary/20 border border-black/10 active:scale-90 transition-all"
+        >
+          <span className="material-symbols-outlined !text-2xl font-black">pedal_bike</span>
+          <span className="text-[7px] font-black uppercase tracking-tighter mt-1">RUA</span>
+        </button>
       </header>
 
       {needsBackup && (
@@ -120,75 +140,113 @@ const Dashboard: React.FC<Props> = ({ sales, pdvs, userName, userImage, onUpdate
         </section>
       )}
 
-      {criticalCities.length > 0 && (
-        <section className="animate-bounce-short">
-          <div className="bg-red-500 text-white rounded-[2.5rem] p-6 shadow-xl shadow-red-500/20 relative overflow-hidden border border-black/10">
-            <div className="absolute top-0 right-0 p-4 opacity-10">
-              <span className="material-symbols-outlined text-7xl transform rotate-12 font-black">emergency_home</span>
-            </div>
-            <div className="relative z-10">
-              <span className="text-[10px] font-black uppercase tracking-[0.2em]">Limite de Rota PDV Excedido</span>
-              <h3 className="text-lg font-black leading-tight italic uppercase mt-1">
-                {criticalCities.length === 1 
-                  ? `Você não visita os PDVs de ${criticalCities[0].name} há ${criticalCities[0].daysSince >= 999 ? 'muito tempo' : criticalCities[0].daysSince + ' dias'}!`
-                  : `Atenção: ${criticalCities.length} cidades com PDVs precisam de visita urgente!`}
-              </h3>
-            </div>
-          </div>
-        </section>
-      )}
-
+      {/* SEÇÃO DE FATURAMENTO (HOJE, MÊS E CANAIS) */}
       <section>
         <div className="bg-surface-light/30 backdrop-blur-xl dark:bg-surface-dark rounded-[3rem] p-8 shadow-sm border border-black/10 dark:border-white/10 relative overflow-hidden">
           <div className="absolute top-0 right-0 p-8 opacity-[0.05]">
             <span className="material-symbols-outlined text-9xl text-primary">receipt_long</span>
           </div>
-          <div className="flex flex-col items-center text-center">
-            <div className="px-4 py-1 rounded-full bg-primary/10 border border-black/5 mb-4">
-              <span className="text-[10px] font-black text-primary uppercase tracking-[0.2em]">Faturamento do Mês</span>
+          
+          <div className="flex flex-col gap-6 relative z-10">
+            {/* Faturamento de Hoje */}
+            <div className="flex flex-col items-center text-center">
+              <div className="px-4 py-1 rounded-full bg-primary/10 border border-black/5 mb-3">
+                <span className="text-[10px] font-black text-primary uppercase tracking-[0.2em]">Vendido Hoje</span>
+              </div>
+              <div className="flex items-baseline gap-1">
+                <span className="text-primary font-bold text-base">R$</span>
+                <h1 className="text-3xl font-bold tracking-tighter text-text-main-light dark:text-white italic">
+                  {todayTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                </h1>
+              </div>
             </div>
-            <div className="flex items-baseline gap-1">
-              <span className="text-primary font-bold text-lg">R$</span>
-              <h1 className="text-4xl font-bold tracking-tighter text-text-main-light dark:text-text-main-dark italic">
-                {currentTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-              </h1>
-            </div>
-            <div className={`mt-4 flex items-center gap-2 px-3 py-1.5 rounded-2xl border border-black/5 ${isUp ? 'bg-green-500/10 text-green-600' : 'bg-red-500/10 text-red-600'}`}>
-              <span className="material-symbols-outlined !text-sm font-black">
-                {isUp ? 'trending_up' : 'trending_down'}
-              </span>
-              <span className="text-[10px] font-black uppercase tracking-widest">
-                {Math.abs(diffPercent).toFixed(1)}% vs mês anterior
-              </span>
+
+            <div className="w-full h-[1px] bg-black/5 dark:bg-white/5"></div>
+
+            {/* Faturamento do Mês */}
+            <div className="flex flex-col items-center text-center">
+              <div className="px-4 py-1 rounded-full bg-surface-light dark:bg-white/5 border border-black/5 mb-3">
+                <span className="text-[9px] font-black text-text-sub-light dark:text-text-sub-dark uppercase tracking-[0.2em]">Acumulado do Mês</span>
+              </div>
+              <div className="flex items-baseline gap-1">
+                <span className="text-text-sub-light font-bold text-sm">R$</span>
+                <h2 className="text-2xl font-bold tracking-tighter text-text-main-light dark:text-white italic">
+                  {currentTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                </h2>
+              </div>
+              
+              <div className={`mt-3 mb-6 flex items-center gap-2 px-3 py-1.5 rounded-2xl border border-black/5 ${isUp ? 'bg-green-500/10 text-green-600' : 'bg-red-500/10 text-red-600'}`}>
+                <span className="material-symbols-outlined !text-xs font-black">
+                  {isUp ? 'trending_up' : 'trending_down'}
+                </span>
+                <span className="text-[9px] font-black uppercase tracking-widest">
+                  {Math.abs(diffPercent).toFixed(1)}% vs mês anterior
+                </span>
+              </div>
+
+              {/* Detalhamento por Canal (RUA e PDV) */}
+              <div className="grid grid-cols-2 gap-4 w-full">
+                <div className="bg-white/40 dark:bg-white/5 rounded-3xl p-4 border border-black/5 dark:border-white/5 flex flex-col items-center">
+                   <div className="flex items-center gap-1.5 mb-2">
+                     <span className="material-symbols-outlined text-primary !text-sm font-black">pedal_bike</span>
+                     <span className="text-[8px] font-black text-text-sub-light uppercase tracking-widest">Rua (Mês)</span>
+                   </div>
+                   <p className="text-sm font-black text-text-main-light dark:text-white italic">
+                     R$ {monthlyStreetTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                   </p>
+                </div>
+                <div className="bg-white/40 dark:bg-white/5 rounded-3xl p-4 border border-black/5 dark:border-white/5 flex flex-col items-center">
+                   <div className="flex items-center gap-1.5 mb-2">
+                     <span className="material-symbols-outlined text-blue-500 !text-sm font-black">store</span>
+                     <span className="text-[8px] font-black text-text-sub-light uppercase tracking-widest">PDV (Mês)</span>
+                   </div>
+                   <p className="text-sm font-black text-text-main-light dark:text-white italic">
+                     R$ {monthlyPdvTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                   </p>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
-      <section>
+      {/* RANKING DE CIDADES POR FREQUÊNCIA DE TRABALHO */}
+      <section className="animate-in fade-in slide-in-from-bottom-4 duration-700">
         <div className="flex justify-between items-center mb-4 px-1">
-          <h3 className="text-[10px] font-black text-primary uppercase tracking-[0.2em] italic">Atenção à Rota PDV</h3>
-          <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest">Cidades Cadastradas</span>
+          <h3 className="text-[10px] font-black text-primary uppercase tracking-[0.2em] italic">Frequência Master</h3>
+          <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest">Cidades mais trabalhadas</span>
         </div>
+        
         <div className="flex flex-col gap-3">
-          {cityAbsence.length === 0 ? (
-            <div className="py-12 flex flex-col items-center opacity-20 italic">
-               <span className="material-symbols-outlined text-4xl mb-2">storefront</span>
-               <p className="text-xs">Cadastre PDVs para ver sua rota.</p>
+          {cityActivityRanking.length === 0 ? (
+            <div className="py-12 flex flex-col items-center opacity-20 italic bg-white/10 rounded-[2.5rem] border border-dashed border-black/10">
+               <span className="material-symbols-outlined text-4xl mb-2">location_city</span>
+               <p className="text-xs">Cadastre PDVs para gerar o ranking de cidades.</p>
             </div>
           ) : (
-            cityAbsence.slice(0, 5).map(city => (
-              <div key={city.name} className={`p-4 rounded-[2rem] border shadow-sm flex justify-between items-center transition-all ${city.daysSince > 28 ? 'bg-red-50 dark:bg-red-950/20 border-red-200' : 'bg-surface-light/40 backdrop-blur-md dark:bg-surface-dark border-black/10 dark:border-white/10'}`}>
-                <div className="flex items-center gap-3">
-                  <div className={`size-10 rounded-xl flex items-center justify-center border border-black/5 ${city.daysSince > 28 ? 'bg-red-500 text-white' : 'bg-primary/10 text-primary'}`}>
-                    <span className="material-symbols-outlined text-xl">location_on</span>
+            cityActivityRanking.map((city, index) => (
+              <div key={city.name} className="group p-5 bg-white/40 backdrop-blur-md dark:bg-surface-dark rounded-[2.2rem] border border-black/10 dark:border-white/10 shadow-sm flex items-center justify-between transition-all active:scale-[0.98]">
+                <div className="flex items-center gap-4 overflow-hidden">
+                  <div className={`size-12 rounded-2xl flex items-center justify-center border border-black/5 shrink-0 ${index < 3 ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'bg-background-light dark:bg-white/5 text-text-sub-light'}`}>
+                    {index < 3 ? (
+                      <span className="text-sm font-black italic">#{index + 1}</span>
+                    ) : (
+                      <span className="material-symbols-outlined text-xl">location_city</span>
+                    )}
                   </div>
-                  <div>
-                    <h4 className="text-xs font-black uppercase italic leading-none">{city.name}</h4>
-                    <p className={`text-[9px] font-bold mt-1 uppercase ${city.daysSince > 28 ? 'text-red-500' : 'text-text-sub-light'}`}>
-                      {city.daysSince === 0 ? 'Visitado hoje' : city.daysSince >= 999 ? 'Sem visitas registradas' : `${city.daysSince} dias sem visita`}
+                  <div className="truncate">
+                    <h4 className="text-xs font-black uppercase italic leading-none truncate">{city.name}</h4>
+                    <p className="text-[8px] font-bold text-text-sub-light mt-1.5 uppercase tracking-widest truncate">
+                      {city.pdvCount} {city.pdvCount === 1 ? 'Ponto Ativo' : 'Pontos Ativos'}
                     </p>
                   </div>
+                </div>
+                
+                <div className="flex flex-col items-end shrink-0 pl-4 text-right">
+                  <span className="text-[10px] font-black text-primary italic leading-none">
+                    {city.visitCount} {city.visitCount === 1 ? 'VISITA' : 'VISITAS'}
+                  </span>
+                  <span className="text-[7px] font-black text-gray-400 uppercase tracking-widest mt-1">Tempo trabalhado</span>
                 </div>
               </div>
             ))

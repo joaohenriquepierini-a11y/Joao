@@ -32,6 +32,7 @@ const App: React.FC = () => {
   const [isDarkMode, setIsDarkMode] = useState(() => localStorage.getItem('tp_theme') === 'dark');
   const [activePDVForSale, setActivePDVForSale] = useState<PDV | null>(null);
   const [selectedPDVForDetails, setSelectedPDVForDetails] = useState<PDV | null>(null);
+  const [editingSale, setEditingSale] = useState<Sale | null>(null);
 
   useEffect(() => {
     localStorage.setItem('tp_sales', JSON.stringify(sales));
@@ -49,7 +50,7 @@ const App: React.FC = () => {
   };
 
   const handleLogout = () => {
-    if (confirm('Deseja realmente encerrar sua sessão? Será necessário digitar a senha novamente.')) {
+    if (confirm('Deseja realmente encerrar sua sessão?')) {
       setIsAuthenticated(false);
       localStorage.removeItem('tp_auth');
       setView(View.DASHBOARD);
@@ -62,9 +63,17 @@ const App: React.FC = () => {
     setView(View.HISTORY);
   };
 
+  const handleUpdateSale = (updatedSale: Sale) => {
+    setSales(prev => prev.map(s => s.id === updatedSale.id ? updatedSale : s));
+    setEditingSale(null);
+    setView(View.HISTORY);
+  };
+
   const handleAddPDV = (pdv: PDV) => {
     setPdvs([pdv, ...pdvs]);
-    setView(View.LOGISTICS);
+    // Navega direto para os detalhes do PDV recém-criado para dar a "opção" solicitada
+    setSelectedPDVForDetails(pdv);
+    setView(View.PDV_DETAILS);
   };
 
   const handleDeletePDV = (id: string) => {
@@ -74,6 +83,16 @@ const App: React.FC = () => {
     return true;
   };
 
+  const handleStartStreetSale = () => {
+    setActivePDVForSale(null);
+    setView(View.REGISTER_SALE);
+  };
+
+  const startEditingSale = (sale: Sale) => {
+    setEditingSale(sale);
+    setView(View.EDIT_SALE);
+  };
+
   if (!isAuthenticated) {
     return <LoginScreen onLogin={handleLogin} />;
   }
@@ -81,29 +100,68 @@ const App: React.FC = () => {
   const renderContent = () => {
     switch (view) {
       case View.DASHBOARD:
-        return <Dashboard sales={sales} pdvs={pdvs} userName={userName} userImage={userImage} onUpdateName={setUserName} onUpdateImage={setUserImage} />;
+        return (
+          <Dashboard 
+            sales={sales} 
+            pdvs={pdvs} 
+            userName={userName} 
+            userImage={userImage} 
+            onUpdateName={setUserName} 
+            onUpdateImage={setUserImage} 
+            onStartStreetSale={handleStartStreetSale}
+          />
+        );
       case View.HISTORY:
-        return <SalesHistory sales={sales} truffles={truffles} onDeleteSale={id => setSales(sales.filter(s => s.id !== id))} onUpdateSale={s => setSales(sales.map(x => x.id === s.id ? s : x))} onRegisterStreetSale={() => setView(View.REGISTER_SALE)} />;
+        return (
+          <SalesHistory 
+            sales={sales} 
+            truffles={truffles} 
+            onDeleteSale={id => setSales(sales.filter(s => s.id !== id))} 
+            onUpdateSale={handleUpdateSale} 
+            onRegisterStreetSale={handleStartStreetSale}
+            onEditSale={startEditingSale}
+          />
+        );
       case View.CATALOG:
-        return <Catalog truffles={truffles} onSave={t => setTruffles(prev => prev.some(x => x.id === t.id) ? prev.map(x => x.id === t.id ? t : x) : [t, ...prev])} onDelete={id => setTruffles(truffles.filter(t => t.id !== id))} />;
+        return <Catalog truffles={truffles} onSave={t => setTruffles(prev => prev.some(x => x.id === t.id) ? prev.map(x => x.id === t.id ? t : x) : [t, ...prev])} onDelete={id => setTruffles(truffles.filter(t => t.id !== id))} onBack={() => setView(View.SETTINGS)} />;
       case View.LOGISTICS:
         return <PDVList pdvs={pdvs} sales={sales} onNavigate={setView} onSelectPDVForSale={(pdv) => { setActivePDVForSale(pdv); setView(View.REGISTER_SALE); }} onShowPDVHistory={(pdv) => { setSelectedPDVForDetails(pdv); setView(View.PDV_DETAILS); }} onDeletePDV={handleDeletePDV} />;
       case View.REGISTER_PDV:
         return <RegisterPDV onAdd={handleAddPDV} onCancel={() => setView(View.LOGISTICS)} />;
       case View.REGISTER_SALE:
         return <RegisterSale sales={sales} truffles={truffles} type={activePDVForSale ? 'PDV' : 'Rua'} preSelectedPDV={activePDVForSale} onAddSale={handleAddSale} onDeletePDV={handleDeletePDV} onCancel={() => { setActivePDVForSale(null); setView(activePDVForSale ? View.LOGISTICS : View.HISTORY); }} />;
+      case View.EDIT_SALE:
+        return (
+          <RegisterSale 
+            sales={sales} 
+            truffles={truffles} 
+            type={editingSale?.type || 'Rua'} 
+            initialSale={editingSale}
+            onAddSale={handleUpdateSale} 
+            onCancel={() => { setEditingSale(null); setView(View.HISTORY); }} 
+          />
+        );
       case View.PDV_DETAILS:
-        return <PDVDetails pdv={selectedPDVForDetails} truffles={truffles} sales={sales} onBack={() => { setSelectedPDVForDetails(null); setView(View.LOGISTICS); }} onSelectPDVForSale={(pdv) => { setActivePDVForSale(pdv); setView(View.REGISTER_SALE); }} />;
+        return (
+          <PDVDetails 
+            pdv={selectedPDVForDetails} 
+            truffles={truffles} 
+            sales={sales} 
+            onBack={() => { setSelectedPDVForDetails(null); setView(View.LOGISTICS); }} 
+            onSelectPDVForSale={(pdv) => { setActivePDVForSale(pdv); setView(View.REGISTER_SALE); }} 
+            onEditSale={startEditingSale}
+          />
+        );
       case View.CITY_DETAILS:
         return <CityDetails pdvs={pdvs} sales={sales} onBack={() => setView(View.LOGISTICS)} />;
       case View.SETTINGS:
-        return <Settings isDarkMode={isDarkMode} onToggleTheme={() => setIsDarkMode(!isDarkMode)} userName={userName} userImage={userImage} onUpdateName={setUserName} onUpdateImage={setUserImage} onLogout={handleLogout} />;
+        return <Settings isDarkMode={isDarkMode} onToggleTheme={() => setIsDarkMode(!isDarkMode)} userName={userName} userImage={userImage} onUpdateName={setUserName} onUpdateImage={setUserImage} onLogout={handleLogout} onNavigateCatalog={() => setView(View.CATALOG)} />;
       default:
-        return <Dashboard sales={sales} pdvs={pdvs} userName={userName} userImage={userImage} onUpdateName={setUserName} onUpdateImage={setUserImage} />;
+        return <Dashboard sales={sales} pdvs={pdvs} userName={userName} userImage={userImage} onUpdateName={setUserName} onUpdateImage={setUserImage} onStartStreetSale={handleStartStreetSale} />;
     }
   };
 
-  const isMainView = [View.DASHBOARD, View.HISTORY, View.CATALOG, View.LOGISTICS, View.SETTINGS].includes(view);
+  const isMainView = [View.DASHBOARD, View.HISTORY, View.LOGISTICS, View.REGISTER_PDV, View.SETTINGS].includes(view);
 
   return (
     <div className="mx-auto min-h-screen relative flex flex-col bg-background-light dark:bg-background-dark transition-colors w-full max-w-md">
@@ -119,18 +177,22 @@ const App: React.FC = () => {
             <span className={`material-symbols-outlined ${view === View.DASHBOARD ? 'material-symbols-filled' : ''}`}>dashboard</span>
             <span className="text-[8px] font-bold uppercase tracking-widest">Início</span>
           </button>
-          <button onClick={() => setView(View.HISTORY)} className={`flex flex-col items-center gap-1 w-full ${view === View.HISTORY ? 'text-primary' : 'text-text-sub-light'}`}>
-            <span className={`material-symbols-outlined ${view === View.HISTORY ? 'material-symbols-filled' : ''}`}>receipt_long</span>
-            <span className="text-[8px] font-bold uppercase tracking-widest">Vendas</span>
-          </button>
-          <button onClick={() => setView(View.CATALOG)} className={`flex flex-col items-center gap-1 w-full ${view === View.CATALOG ? 'text-primary' : 'text-text-sub-light'}`}>
-            <span className={`material-symbols-outlined ${view === View.CATALOG ? 'material-symbols-filled' : ''}`}>inventory_2</span>
-            <span className="text-[8px] font-bold uppercase tracking-widest">Produtos</span>
-          </button>
-          <button onClick={() => setView(View.LOGISTICS)} className={`flex flex-col items-center gap-1 w-full ${[View.LOGISTICS, View.PDV_DETAILS, View.CITY_DETAILS, View.REGISTER_PDV].includes(view) ? 'text-primary' : 'text-text-sub-light'}`}>
-            <span className={`material-symbols-outlined ${[View.LOGISTICS, View.PDV_DETAILS, View.CITY_DETAILS].includes(view) ? 'material-symbols-filled' : ''}`}>store</span>
+          
+          <button onClick={() => setView(View.LOGISTICS)} className={`flex flex-col items-center gap-1 w-full ${view === View.LOGISTICS ? 'text-primary' : 'text-text-sub-light'}`}>
+            <span className={`material-symbols-outlined ${view === View.LOGISTICS ? 'material-symbols-filled' : ''}`}>storefront</span>
             <span className="text-[8px] font-bold uppercase tracking-widest">PDVs</span>
           </button>
+
+          <button onClick={() => setView(View.REGISTER_PDV)} className={`flex flex-col items-center gap-1 w-full ${view === View.REGISTER_PDV ? 'text-primary' : 'text-text-sub-light'}`}>
+            <span className={`material-symbols-outlined ${view === View.REGISTER_PDV ? 'material-symbols-filled' : ''}`}>add_business</span>
+            <span className="text-[8px] font-bold uppercase tracking-widest">Cadastrar</span>
+          </button>
+
+          <button onClick={() => setView(View.HISTORY)} className={`flex flex-col items-center gap-1 w-full ${view === View.HISTORY ? 'text-primary' : 'text-text-sub-light'}`}>
+            <span className={`material-symbols-outlined ${view === View.HISTORY ? 'material-symbols-filled' : ''}`}>receipt_long</span>
+            <span className="text-[8px] font-bold uppercase tracking-widest">Histórico</span>
+          </button>
+
           <button onClick={() => setView(View.SETTINGS)} className={`flex flex-col items-center gap-1 w-full ${view === View.SETTINGS ? 'text-primary' : 'text-text-sub-light'}`}>
             <span className={`material-symbols-outlined ${view === View.SETTINGS ? 'material-symbols-filled' : ''}`}>settings</span>
             <span className="text-[8px] font-bold uppercase tracking-widest">Ajustes</span>

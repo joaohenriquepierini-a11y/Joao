@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Truffle, Sale, SaleItem, PDV } from '../types';
 
 interface Props {
@@ -8,21 +8,40 @@ interface Props {
   onCancel: () => void;
   type: 'Rua' | 'PDV';
   preSelectedPDV?: PDV | null;
+  initialSale?: Sale | null;
   onDeletePDV?: (id: string) => boolean;
-  sales: Sale[]; // Adicionado para verificar se é PDV Futuro
+  sales?: Sale[]; 
 }
 
-const RegisterSale: React.FC<Props> = ({ truffles, onAddSale, onCancel, type, preSelectedPDV, onDeletePDV, sales }) => {
+const RegisterSale: React.FC<Props> = ({ truffles, onAddSale, onCancel, type, preSelectedPDV, initialSale, onDeletePDV, sales = [] }) => {
   const [quantities, setQuantities] = useState<Record<string, number>>({}); 
   const [leftOver, setLeftOver] = useState<Record<string, number>>({}); 
   const [newConsigned, setNewConsigned] = useState<Record<string, number>>({}); 
-  const [city, setCity] = useState(preSelectedPDV?.city || '');
-  const [location, setLocation] = useState(preSelectedPDV?.companyName || '');
-  const [ownerName, setOwnerName] = useState(preSelectedPDV?.contactName || '');
-  const [observation, setObservation] = useState('');
-  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+  
+  const [city, setCity] = useState(preSelectedPDV?.city || initialSale?.city || '');
+  const [location, setLocation] = useState(preSelectedPDV?.companyName || initialSale?.location || '');
+  const [ownerName, setOwnerName] = useState(preSelectedPDV?.contactName || initialSale?.ownerName || '');
+  const [observation, setObservation] = useState(initialSale?.observation || '');
+  const [selectedDate, setSelectedDate] = useState(initialSale ? new Date(initialSale.timestamp).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]);
 
-  // Verifica se este PDV específico tem alguma venda no histórico
+  useEffect(() => {
+    if (initialSale) {
+      const q: Record<string, number> = {};
+      const l: Record<string, number> = {};
+      const n: Record<string, number> = {};
+      
+      initialSale.items.forEach(item => {
+        q[item.truffleId] = item.quantity;
+        l[item.truffleId] = item.leftOverQuantity || 0;
+        n[item.truffleId] = item.newConsignedQuantity || 0;
+      });
+      
+      setQuantities(q);
+      setLeftOver(l);
+      setNewConsigned(n);
+    }
+  }, [initialSale]);
+
   const isFuturePDV = preSelectedPDV ? !sales.some(s => s.location.toLowerCase() === preSelectedPDV.companyName.toLowerCase() && s.type === 'PDV') : false;
 
   const calculatedTotal = (Object.entries(quantities) as [string, number][]).reduce((acc, [id, qty]) => {
@@ -47,7 +66,7 @@ const RegisterSale: React.FC<Props> = ({ truffles, onAddSale, onCancel, type, pr
 
     const dateObj = new Date(selectedDate + "T12:00:00");
     const newSale: Sale = {
-      id: Math.random().toString(36).substr(2, 9),
+      id: initialSale?.id || Math.random().toString(36).substr(2, 9),
       date: dateObj.toLocaleDateString('pt-BR', { day: 'numeric', month: 'long' }).toUpperCase(),
       timestamp: dateObj.getTime(),
       city: type === 'Rua' ? 'Venda de Rua' : city,
@@ -62,19 +81,9 @@ const RegisterSale: React.FC<Props> = ({ truffles, onAddSale, onCancel, type, pr
     onAddSale(newSale);
   };
 
-  const handleDeleteCurrentPDV = () => {
-    if (preSelectedPDV && onDeletePDV) {
-      const msg = isFuturePDV 
-        ? `CONFIRMAR: Deseja excluir este PDV FUTURO?\n\n"${preSelectedPDV.companyName.toUpperCase()}" ainda não tem vendas e será removido da rota.` 
-        : `ATENÇÃO: Deseja excluir este PDV ATIVO?\n\n"${preSelectedPDV.companyName.toUpperCase()}" possui histórico. Esta ação é irreversível!`;
-
-      if (window.confirm(`⚠️ SEGURANÇA MASTER\n\n${msg}`)) {
-        const deleted = onDeletePDV(preSelectedPDV.id);
-        if (deleted) {
-          onCancel(); 
-        }
-      }
-    }
+  const updateVal = (setter: any, current: any, id: string, val: string | number) => {
+    const n = typeof val === 'string' ? parseInt(val) || 0 : val;
+    setter({...current, [id]: Math.max(0, n)});
   };
 
   if (type === 'Rua') {
@@ -83,13 +92,18 @@ const RegisterSale: React.FC<Props> = ({ truffles, onAddSale, onCancel, type, pr
         <header className="px-6 py-10 flex items-center justify-between">
           <button onClick={onCancel} className="material-symbols-outlined text-gray-400">close</button>
           <div className="text-center">
-            <h1 className="text-xl font-black text-primary uppercase italic leading-none">Venda Rápida Rua</h1>
+            <h1 className="text-xl font-black text-primary uppercase italic leading-none">{initialSale ? 'Editar Venda Rua' : 'Venda Rápida Rua'}</h1>
             <p className="text-[10px] font-bold text-gray-400 mt-1 uppercase tracking-widest">Ponto Móvel</p>
           </div>
           <div className="w-6"></div>
         </header>
 
         <div className="px-6 space-y-4">
+          <div className="bg-white dark:bg-surface-dark p-4 rounded-[2rem] border border-gray-100 dark:border-white/5 mb-6">
+             <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest px-1">Data da Venda</label>
+             <input type="date" className="w-full bg-transparent border-none p-2 text-xs font-black" value={selectedDate} onChange={e => setSelectedDate(e.target.value)} />
+          </div>
+
           {truffles.map(t => (
             <div key={t.id} className="bg-white dark:bg-surface-dark p-6 rounded-[2.5rem] shadow-sm flex items-center justify-between border border-gray-100 dark:border-white/5">
               <div className="flex items-center gap-4">
@@ -101,10 +115,15 @@ const RegisterSale: React.FC<Props> = ({ truffles, onAddSale, onCancel, type, pr
                   <p className="text-[10px] font-bold text-primary">R$ {t.priceStreet.toFixed(2)}</p>
                 </div>
               </div>
-              <div className="flex items-center bg-gray-50 dark:bg-white/5 rounded-2xl p-1 px-4 gap-4">
-                <button onClick={() => setQuantities({...quantities, [t.id]: Math.max(0, (quantities[t.id] || 0) - 1)})} className="text-primary font-black text-2xl">-</button>
-                <span className="text-lg font-black">{quantities[t.id] || 0}</span>
-                <button onClick={() => setQuantities({...quantities, [t.id]: (quantities[t.id] || 0) + 1})} className="text-primary font-black text-2xl">+</button>
+              <div className="flex items-center bg-gray-50 dark:bg-white/5 rounded-2xl p-1 px-2 gap-2">
+                <button onClick={() => updateVal(setQuantities, quantities, t.id, (quantities[t.id] || 0) - 1)} className="size-8 flex items-center justify-center text-primary font-black text-2xl">-</button>
+                <input 
+                  type="number" 
+                  className="w-12 bg-transparent border-none p-0 text-center text-lg font-black focus:ring-0" 
+                  value={quantities[t.id] || 0}
+                  onChange={e => updateVal(setQuantities, quantities, t.id, e.target.value)}
+                />
+                <button onClick={() => updateVal(setQuantities, quantities, t.id, (quantities[t.id] || 0) + 1)} className="size-8 flex items-center justify-center text-primary font-black text-2xl">+</button>
               </div>
             </div>
           ))}
@@ -115,7 +134,9 @@ const RegisterSale: React.FC<Props> = ({ truffles, onAddSale, onCancel, type, pr
             <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Total</span>
             <span className="text-2xl font-black text-primary italic">R$ {calculatedTotal.toFixed(2)}</span>
           </div>
-          <button onClick={handleConfirm} className="w-full h-14 bg-primary text-white rounded-[2rem] font-black shadow-lg shadow-primary/20 active:scale-95 transition-all uppercase">Salvar Venda</button>
+          <button onClick={handleConfirm} className="w-full h-14 bg-primary text-white rounded-[2rem] font-black shadow-lg shadow-primary/20 active:scale-95 transition-all uppercase">
+            {initialSale ? 'Atualizar Venda' : 'Salvar Venda'}
+          </button>
         </div>
       </div>
     );
@@ -128,29 +149,13 @@ const RegisterSale: React.FC<Props> = ({ truffles, onAddSale, onCancel, type, pr
           <span className="material-symbols-outlined">arrow_back</span>
         </button>
         <div className="text-center">
-          <h1 className="text-lg font-black text-text-main-light dark:text-white uppercase italic leading-none">Acerto de PDV</h1>
+          <h1 className="text-lg font-black text-text-main-light dark:text-white uppercase italic leading-none">{initialSale ? 'Editar Visita PDV' : 'Acerto de PDV'}</h1>
           <p className="text-[9px] font-black text-primary uppercase tracking-widest mt-1">Gestão de Consignação</p>
         </div>
-        {preSelectedPDV ? (
-          <button 
-            onClick={handleDeleteCurrentPDV} 
-            className={`size-11 rounded-2xl flex items-center justify-center transition-all shadow-md active:scale-90 ${isFuturePDV ? 'bg-orange-500 text-white shadow-orange-500/20' : 'bg-red-50 dark:bg-red-950/20 text-red-400 hover:bg-red-500 hover:text-white'}`}
-          >
-            <span className="material-symbols-outlined !text-xl">{isFuturePDV ? 'delete_sweep' : 'delete_forever'}</span>
-          </button>
-        ) : (
-          <div className="w-11"></div>
-        )}
+        <div className="w-11"></div>
       </header>
 
       <main className="p-6 space-y-6">
-        {isFuturePDV && (
-          <div className="bg-orange-500/10 border border-orange-500/20 p-4 rounded-3xl flex items-center gap-3">
-            <span className="material-symbols-outlined text-orange-500">info</span>
-            <p className="text-[9px] font-black text-orange-600 uppercase leading-tight italic">Este é um PDV Futuro. Você pode excluí-lo no botão acima se não for mais visitá-lo.</p>
-          </div>
-        )}
-
         <section className="bg-white dark:bg-surface-dark p-6 rounded-[2.5rem] shadow-sm border border-gray-100 dark:border-white/5 space-y-4">
           <div className="space-y-1">
             <label className="text-[9px] font-black text-primary uppercase tracking-widest px-1">Nome da Loja</label>
@@ -189,27 +194,42 @@ const RegisterSale: React.FC<Props> = ({ truffles, onAddSale, onCancel, type, pr
                 <div className="flex flex-col gap-1.5 items-center">
                   <span className="text-[7px] font-black text-green-500 uppercase">Vendidas</span>
                   <div className="flex flex-col items-center bg-green-500/5 rounded-2xl border border-green-500/10 py-1 w-full">
-                    <button onClick={() => setQuantities({...quantities, [t.id]: (quantities[t.id] || 0) + 1})} className="p-1 text-green-500"><span className="material-symbols-outlined text-sm">expand_less</span></button>
-                    <span className="text-lg font-black text-green-600 leading-none">{quantities[t.id] || 0}</span>
-                    <button onClick={() => setQuantities({...quantities, [t.id]: Math.max(0, (quantities[t.id] || 0) - 1)})} className="p-1 text-green-500"><span className="material-symbols-outlined text-sm">expand_more</span></button>
+                    <button onClick={() => updateVal(setQuantities, quantities, t.id, (quantities[t.id] || 0) + 1)} className="p-1 text-green-500"><span className="material-symbols-outlined text-sm">expand_less</span></button>
+                    <input 
+                      type="number" 
+                      className="w-full bg-transparent border-none p-0 text-center text-lg font-black text-green-600 focus:ring-0" 
+                      value={quantities[t.id] || 0}
+                      onChange={e => updateVal(setQuantities, quantities, t.id, e.target.value)}
+                    />
+                    <button onClick={() => updateVal(setQuantities, quantities, t.id, (quantities[t.id] || 0) - 1)} className="p-1 text-green-500"><span className="material-symbols-outlined text-sm">expand_more</span></button>
                   </div>
                 </div>
 
                 <div className="flex flex-col gap-1.5 items-center">
                   <span className="text-[7px] font-black text-gray-400 uppercase">Sobra</span>
                   <div className="flex flex-col items-center bg-gray-50 dark:bg-white/5 rounded-2xl border border-gray-100 dark:border-white/10 py-1 w-full">
-                    <button onClick={() => setLeftOver({...leftOver, [t.id]: (leftOver[t.id] || 0) + 1})} className="p-1 text-gray-400"><span className="material-symbols-outlined text-sm">expand_less</span></button>
-                    <span className="text-lg font-black leading-none">{leftOver[t.id] || 0}</span>
-                    <button onClick={() => setLeftOver({...leftOver, [t.id]: Math.max(0, (leftOver[t.id] || 0) - 1)})} className="p-1 text-gray-400"><span className="material-symbols-outlined text-sm">expand_more</span></button>
+                    <button onClick={() => updateVal(setLeftOver, leftOver, t.id, (leftOver[t.id] || 0) + 1)} className="p-1 text-gray-400"><span className="material-symbols-outlined text-sm">expand_less</span></button>
+                    <input 
+                      type="number" 
+                      className="w-full bg-transparent border-none p-0 text-center text-lg font-black focus:ring-0" 
+                      value={leftOver[t.id] || 0}
+                      onChange={e => updateVal(setLeftOver, leftOver, t.id, e.target.value)}
+                    />
+                    <button onClick={() => updateVal(setLeftOver, leftOver, t.id, (leftOver[t.id] || 0) - 1)} className="p-1 text-gray-400"><span className="material-symbols-outlined text-sm">expand_more</span></button>
                   </div>
                 </div>
 
                 <div className="flex flex-col gap-1.5 items-center">
                   <span className="text-[7px] font-black text-primary uppercase">Deixadas</span>
                   <div className="flex flex-col items-center bg-primary/5 rounded-2xl border border-primary/10 py-1 w-full">
-                    <button onClick={() => setNewConsigned({...newConsigned, [t.id]: (newConsigned[t.id] || 0) + 1})} className="p-1 text-primary"><span className="material-symbols-outlined text-sm">expand_less</span></button>
-                    <span className="text-lg font-black text-primary leading-none">{newConsigned[t.id] || 0}</span>
-                    <button onClick={() => setNewConsigned({...newConsigned, [t.id]: Math.max(0, (newConsigned[t.id] || 0) - 1)})} className="p-1 text-primary"><span className="material-symbols-outlined text-sm">expand_more</span></button>
+                    <button onClick={() => updateVal(setNewConsigned, newConsigned, t.id, (newConsigned[t.id] || 0) + 1)} className="p-1 text-primary"><span className="material-symbols-outlined text-sm">expand_less</span></button>
+                    <input 
+                      type="number" 
+                      className="w-full bg-transparent border-none p-0 text-center text-lg font-black text-primary focus:ring-0" 
+                      value={newConsigned[t.id] || 0}
+                      onChange={e => updateVal(setNewConsigned, newConsigned, t.id, e.target.value)}
+                    />
+                    <button onClick={() => updateVal(setNewConsigned, newConsigned, t.id, (newConsigned[t.id] || 0) - 1)} className="p-1 text-primary"><span className="material-symbols-outlined text-sm">expand_more</span></button>
                   </div>
                 </div>
               </div>
@@ -234,7 +254,9 @@ const RegisterSale: React.FC<Props> = ({ truffles, onAddSale, onCancel, type, pr
             <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Valor Recebido</p>
             <p className="text-3xl font-black text-primary italic">R$ {calculatedTotal.toFixed(2)}</p>
           </div>
-          <button onClick={handleConfirm} className="bg-primary text-white h-14 px-8 rounded-[2rem] font-black text-sm shadow-xl shadow-primary/20 active:scale-95 transition-all uppercase">Finalizar Acerto</button>
+          <button onClick={handleConfirm} className="bg-primary text-white h-14 px-8 rounded-[2rem] font-black text-sm shadow-xl shadow-primary/20 active:scale-95 transition-all uppercase">
+            {initialSale ? 'Atualizar Registro' : 'Finalizar Acerto'}
+          </button>
         </div>
       </div>
     </div>

@@ -8,11 +8,11 @@ interface Props {
   onDeleteSale: (id: string) => void;
   onUpdateSale: (sale: Sale) => void;
   onRegisterStreetSale: () => void;
+  onEditSale: (sale: Sale) => void;
 }
 
-const SalesHistory: React.FC<Props> = ({ sales, truffles, onDeleteSale, onUpdateSale, onRegisterStreetSale }) => {
+const SalesHistory: React.FC<Props> = ({ sales, truffles, onDeleteSale, onUpdateSale, onRegisterStreetSale, onEditSale }) => {
   const [filter, setFilter] = useState<'Todos' | 'Rua' | 'PDV'>('Todos');
-  const [editingId, setEditingId] = useState<string | null>(null);
 
   const todayStart = new Date(new Date().setHours(0, 0, 0, 0)).getTime();
   const todaySales = sales.filter(s => s.timestamp >= todayStart);
@@ -62,7 +62,7 @@ const SalesHistory: React.FC<Props> = ({ sales, truffles, onDeleteSale, onUpdate
               <div className="py-6 text-center opacity-20 italic text-sm">Nenhuma venda registrada ainda.</div>
             ) : (
               lastThreeSales.map(sale => (
-                <div key={sale.id} className="bg-surface-light/40 backdrop-blur-md dark:bg-surface-dark p-4 rounded-[2rem] border border-black/10 dark:border-white/10 shadow-sm flex justify-between items-center active:scale-95 transition-transform cursor-pointer">
+                <div key={sale.id} onClick={() => onEditSale(sale)} className="bg-surface-light/40 backdrop-blur-md dark:bg-surface-dark p-4 rounded-[2rem] border border-black/10 dark:border-white/10 shadow-sm flex justify-between items-center active:scale-95 transition-transform cursor-pointer">
                   <div className="flex items-center gap-3 overflow-hidden">
                     <div className={`size-10 rounded-xl flex items-center justify-center shrink-0 border border-black/5 ${sale.type === 'PDV' ? 'bg-blue-500/10 text-blue-500' : 'bg-primary/20 text-primary'}`}>
                       <span className="material-symbols-outlined text-xl">{sale.type === 'PDV' ? 'store' : 'pedal_bike'}</span>
@@ -72,7 +72,10 @@ const SalesHistory: React.FC<Props> = ({ sales, truffles, onDeleteSale, onUpdate
                       <p className="text-[8px] font-bold text-text-sub-light mt-1 uppercase">{sale.date}</p>
                     </div>
                   </div>
-                  <p className="text-sm font-black text-primary italic shrink-0">R$ {sale.total.toFixed(2)}</p>
+                  <div className="flex items-center gap-3">
+                    <p className="text-sm font-black text-primary italic shrink-0">R$ {sale.total.toFixed(2)}</p>
+                    <span className="material-symbols-outlined text-gray-400 text-sm">edit</span>
+                  </div>
                 </div>
               ))
             )}
@@ -90,14 +93,10 @@ const SalesHistory: React.FC<Props> = ({ sales, truffles, onDeleteSale, onUpdate
           </div>
           <div className="flex flex-col gap-3">
             {filteredSales.map(sale => (
-              <EditableSaleItem 
+              <SaleHistoryItem 
                 key={sale.id} 
                 sale={sale} 
-                truffles={truffles} 
-                onDelete={() => onDeleteSale(sale.id)} 
-                onUpdate={onUpdateSale}
-                isEditing={editingId === sale.id}
-                onSetEditing={(v) => setEditingId(v ? sale.id : null)}
+                onEdit={() => onEditSale(sale)}
               />
             ))}
           </div>
@@ -107,35 +106,9 @@ const SalesHistory: React.FC<Props> = ({ sales, truffles, onDeleteSale, onUpdate
   );
 };
 
-const EditableSaleItem: React.FC<{ sale: Sale, truffles: Truffle[], onDelete: () => void, onUpdate: (s: Sale) => void, isEditing: boolean, onSetEditing: (v: boolean) => void }> = ({ sale, truffles, onDelete, onUpdate, isEditing, onSetEditing }) => {
-  const [edited, setEdited] = useState({...sale});
-  if (isEditing) {
-    return (
-      <div className="bg-surface-light dark:bg-surface-dark rounded-[2rem] p-5 border-2 border-black/20 dark:border-white/20 shadow-xl">
-        <div className="flex justify-between mb-4">
-          <span className="text-[9px] font-black text-primary uppercase italic">Editar Registro</span>
-          <button onClick={() => onSetEditing(false)} className="material-symbols-outlined text-text-sub-light">close</button>
-        </div>
-        <div className="space-y-3">
-          <div className="grid grid-cols-2 gap-2">
-            <input className="w-full bg-background-light dark:bg-white/5 border border-black/5 rounded-xl p-3 text-xs font-bold" value={edited.city} onChange={e => setEdited({...edited, city: e.target.value})} placeholder="Cidade" />
-            <input className="w-full bg-background-light dark:bg-white/5 border border-black/5 rounded-xl p-3 text-xs font-bold" type="date" value={new Date(edited.timestamp).toISOString().split('T')[0]} onChange={e => {
-               const d = new Date(e.target.value + "T12:00:00");
-               setEdited({...edited, timestamp: d.getTime(), date: d.toLocaleDateString('pt-BR', {day: 'numeric', month: 'long'}).toUpperCase()});
-            }} />
-          </div>
-          <input className="w-full bg-background-light dark:bg-white/5 border border-black/5 rounded-xl p-3 text-xs font-bold" value={edited.location} onChange={e => setEdited({...edited, location: e.target.value})} placeholder="Ponto/Loja" />
-          <input className="w-full bg-background-light dark:bg-white/5 border border-black/5 rounded-xl p-3 text-xs font-bold text-primary" type="number" value={edited.total} onChange={e => setEdited({...edited, total: parseFloat(e.target.value) || 0})} placeholder="Valor Total" />
-        </div>
-        <div className="grid grid-cols-2 gap-2 mt-6">
-          <button onClick={() => { if(confirm('Excluir esta venda?')) onDelete(); }} className="py-3 bg-red-50 text-red-500 rounded-xl font-black text-[9px] uppercase border border-red-200">Apagar</button>
-          <button onClick={() => { onUpdate(edited); onSetEditing(false); }} className="py-3 bg-primary text-white rounded-xl font-black text-[9px] uppercase border border-black/10">Salvar</button>
-        </div>
-      </div>
-    );
-  }
+const SaleHistoryItem: React.FC<{ sale: Sale, onEdit: () => void }> = ({ sale, onEdit }) => {
   return (
-    <div onClick={() => onSetEditing(true)} className="flex items-center justify-between p-4 bg-surface-light/40 backdrop-blur-md dark:bg-surface-dark rounded-[1.8rem] border border-black/10 dark:border-white/10 shadow-sm active:scale-[0.98] transition-all cursor-pointer">
+    <div onClick={onEdit} className="flex items-center justify-between p-4 bg-surface-light/40 backdrop-blur-md dark:bg-surface-dark rounded-[1.8rem] border border-black/10 dark:border-white/10 shadow-sm active:scale-[0.98] transition-all cursor-pointer">
       <div className="flex items-center gap-3 overflow-hidden">
         <div className={`size-10 rounded-xl flex items-center justify-center shrink-0 border border-black/5 ${sale.type === 'PDV' ? 'bg-blue-500/10 text-blue-500' : 'bg-primary/20 text-primary'}`}>
           <span className="material-symbols-outlined text-xl">{sale.type === 'PDV' ? 'store' : 'pedal_bike'}</span>
@@ -145,9 +118,12 @@ const EditableSaleItem: React.FC<{ sale: Sale, truffles: Truffle[], onDelete: ()
           <p className="text-[9px] font-bold text-text-sub-light mt-1 uppercase truncate">{sale.city} • {sale.type}</p>
         </div>
       </div>
-      <div className="text-right pl-2">
-        <p className="text-primary font-black text-sm">R$ {sale.total.toFixed(2)}</p>
-        <span className="text-[7px] font-black text-text-sub-light/50 uppercase">{sale.date}</span>
+      <div className="flex items-center gap-2 pl-2">
+        <div className="text-right">
+          <p className="text-primary font-black text-sm">R$ {sale.total.toFixed(2)}</p>
+          <span className="text-[7px] font-black text-text-sub-light/50 uppercase">{sale.date}</span>
+        </div>
+        <span className="material-symbols-outlined text-gray-400 text-sm">edit</span>
       </div>
     </div>
   );

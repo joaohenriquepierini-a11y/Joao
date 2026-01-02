@@ -5,9 +5,9 @@ export type PaymentMethod = 'PIX' | 'DINHEIRO';
 
 export interface SaleItem {
   truffleId: string;
-  quantity: number; // Quantidade Vendida/Paga no dia
-  leftOverQuantity?: number; // O que sobrou do estoque anterior
-  newConsignedQuantity?: number; // O novo estoque deixado hoje
+  quantity: number; // Quantidade Vendida/Paga no dia (Vendidas)
+  leftOverQuantity?: number; // O que sobrou do estoque anterior (Sobra)
+  newConsignedQuantity?: number; // O novo estoque deixado hoje (Deixadas)
 }
 
 export interface Sale {
@@ -51,5 +51,6 @@ export enum View {
   SETTINGS = 'SETTINGS',
   PDV_DETAILS = 'PDV_DETAILS',
   CITY_DETAILS = 'CITY_DETAILS',
-  REGISTER_PDV = 'REGISTER_PDV'
+  REGISTER_PDV = 'REGISTER_PDV',
+  EDIT_SALE = 'EDIT_SALE'
 }
