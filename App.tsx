@@ -31,6 +31,7 @@ const App: React.FC = () => {
   
   const [isDarkMode, setIsDarkMode] = useState(() => localStorage.getItem('tp_theme') === 'dark');
   const [activePDVForSale, setActivePDVForSale] = useState<PDV | null>(null);
+  const [selectedPDVForDetails, setSelectedPDVForDetails] = useState<PDV | null>(null);
 
   useEffect(() => {
     localStorage.setItem('tp_sales', JSON.stringify(sales));
@@ -69,6 +70,7 @@ const App: React.FC = () => {
   const handleDeletePDV = (id: string) => {
     setPdvs(prev => prev.filter(p => p.id !== id));
     if (activePDVForSale?.id === id) setActivePDVForSale(null);
+    if (selectedPDVForDetails?.id === id) setSelectedPDVForDetails(null);
     return true;
   };
 
@@ -85,13 +87,13 @@ const App: React.FC = () => {
       case View.CATALOG:
         return <Catalog truffles={truffles} onSave={t => setTruffles(prev => prev.some(x => x.id === t.id) ? prev.map(x => x.id === t.id ? t : x) : [t, ...prev])} onDelete={id => setTruffles(truffles.filter(t => t.id !== id))} />;
       case View.LOGISTICS:
-        return <PDVList pdvs={pdvs} sales={sales} onNavigate={setView} onSelectPDVForSale={(pdv) => { setActivePDVForSale(pdv); setView(View.REGISTER_SALE); }} onDeletePDV={handleDeletePDV} />;
+        return <PDVList pdvs={pdvs} sales={sales} onNavigate={setView} onSelectPDVForSale={(pdv) => { setActivePDVForSale(pdv); setView(View.REGISTER_SALE); }} onShowPDVHistory={(pdv) => { setSelectedPDVForDetails(pdv); setView(View.PDV_DETAILS); }} onDeletePDV={handleDeletePDV} />;
       case View.REGISTER_PDV:
         return <RegisterPDV onAdd={handleAddPDV} onCancel={() => setView(View.LOGISTICS)} />;
       case View.REGISTER_SALE:
         return <RegisterSale sales={sales} truffles={truffles} type={activePDVForSale ? 'PDV' : 'Rua'} preSelectedPDV={activePDVForSale} onAddSale={handleAddSale} onDeletePDV={handleDeletePDV} onCancel={() => { setActivePDVForSale(null); setView(activePDVForSale ? View.LOGISTICS : View.HISTORY); }} />;
       case View.PDV_DETAILS:
-        return <PDVDetails pdvs={pdvs} sales={sales} onBack={() => setView(View.LOGISTICS)} onDeletePDV={handleDeletePDV} onSelectPDVForSale={(pdv) => { setActivePDVForSale(pdv); setView(View.REGISTER_SALE); }} />;
+        return <PDVDetails pdv={selectedPDVForDetails} truffles={truffles} sales={sales} onBack={() => { setSelectedPDVForDetails(null); setView(View.LOGISTICS); }} onSelectPDVForSale={(pdv) => { setActivePDVForSale(pdv); setView(View.REGISTER_SALE); }} />;
       case View.CITY_DETAILS:
         return <CityDetails pdvs={pdvs} sales={sales} onBack={() => setView(View.LOGISTICS)} />;
       case View.SETTINGS:

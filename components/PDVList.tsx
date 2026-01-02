@@ -7,13 +7,14 @@ interface Props {
   sales: Sale[];
   onNavigate: (view: View) => void;
   onSelectPDVForSale: (pdv: PDV) => void;
+  onShowPDVHistory: (pdv: PDV) => void;
   onDeletePDV?: (id: string) => boolean;
 }
 
 type SortOption = 'time_desc' | 'time_asc' | 'qty_desc' | 'qty_asc';
 type FilterStatus = 'all' | 'no_sales';
 
-const PDVList: React.FC<Props> = ({ pdvs, sales, onNavigate, onSelectPDVForSale, onDeletePDV }) => {
+const PDVList: React.FC<Props> = ({ pdvs, sales, onNavigate, onSelectPDVForSale, onShowPDVHistory, onDeletePDV }) => {
   const [isManageMode, setIsManageMode] = useState(false);
   const [search, setSearch] = useState('');
   const [sortBy, setSortBy] = useState<SortOption>('time_desc');
@@ -35,7 +36,7 @@ const PDVList: React.FC<Props> = ({ pdvs, sales, onNavigate, onSelectPDVForSale,
   const processedPdvs = useMemo(() => {
     let list = pdvs.map(p => ({ ...p, stats: getPDVStats(p) }));
     if (filterStatus === 'no_sales') list = list.filter(p => p.stats.isFuture);
-    if (search) list = list.filter(p => p.companyName.toLowerCase().includes(search.toLowerCase()) || p.city.toLowerCase().includes(search.toLowerCase()));
+    if (search) list = list.filter(p => p.companyName.toLowerCase().includes(search.toLowerCase()) || p.city.toLowerCase().includes(search.toLowerCase()) || (p.phone && p.phone.includes(search)));
     list.sort((a, b) => {
       switch (sortBy) {
         case 'time_desc': return a.stats.daysSince - b.stats.daysSince;
@@ -83,7 +84,7 @@ const PDVList: React.FC<Props> = ({ pdvs, sales, onNavigate, onSelectPDVForSale,
         <div className="px-6 pb-6 space-y-4">
           <div className="relative group">
             <span className="absolute left-4 top-1/2 -translate-y-1/2 material-symbols-outlined text-text-sub-light/50 group-focus-within:text-primary transition-colors">search</span>
-            <input className="w-full bg-surface-light/40 backdrop-blur-md dark:bg-surface-dark border border-black/10 rounded-2xl py-4 pl-12 pr-4 text-xs font-bold shadow-sm focus:ring-2 focus:ring-primary/20 placeholder:text-text-sub-light/40" placeholder="Localizar PDV ou Cidade..." value={search} onChange={(e) => setSearch(e.target.value)} />
+            <input className="w-full bg-surface-light/40 backdrop-blur-md dark:bg-surface-dark border border-black/10 rounded-2xl py-4 pl-12 pr-4 text-xs font-bold shadow-sm focus:ring-2 focus:ring-primary/20 placeholder:text-text-sub-light/40" placeholder="Localizar PDV, Cidade ou Telefone..." value={search} onChange={(e) => setSearch(e.target.value)} />
           </div>
 
           <div className="flex flex-col gap-3">
@@ -123,14 +124,14 @@ const PDVList: React.FC<Props> = ({ pdvs, sales, onNavigate, onSelectPDVForSale,
                   <p className="text-[10px] font-black text-blue-500 italic">R$ {city.revenue.toFixed(2)}</p>
                 </div>
                 <div className="grid grid-cols-1 gap-4">
-                  {city.pdvs.map(pdv => <PDVCard key={pdv.id} pdv={pdv} isManageMode={isManageMode} onDelete={handleDelete} onSelect={onSelectPDVForSale} />)}
+                  {city.pdvs.map(pdv => <PDVCard key={pdv.id} pdv={pdv} isManageMode={isManageMode} onDelete={handleDelete} onSelect={onSelectPDVForSale} onHistory={onShowPDVHistory} />)}
                 </div>
               </section>
             ))}
           </div>
         ) : (
           <div className="space-y-4">
-            {processedPdvs.map(pdv => <PDVCard key={pdv.id} pdv={pdv} isManageMode={isManageMode} onDelete={handleDelete} onSelect={onSelectPDVForSale} />)}
+            {processedPdvs.map(pdv => <PDVCard key={pdv.id} pdv={pdv} isManageMode={isManageMode} onDelete={handleDelete} onSelect={onSelectPDVForSale} onHistory={onShowPDVHistory} />)}
           </div>
         )}
       </main>
@@ -138,7 +139,7 @@ const PDVList: React.FC<Props> = ({ pdvs, sales, onNavigate, onSelectPDVForSale,
   );
 };
 
-const PDVCard: React.FC<{ pdv: any, isManageMode: boolean, onDelete: any, onSelect: any }> = ({ pdv, isManageMode, onDelete, onSelect }) => (
+const PDVCard: React.FC<{ pdv: any, isManageMode: boolean, onDelete: any, onSelect: any, onHistory: any }> = ({ pdv, isManageMode, onDelete, onSelect, onHistory }) => (
   <div onClick={() => !isManageMode && onSelect(pdv)} className={`group relative flex flex-col p-5 bg-surface-light/40 backdrop-blur-md dark:bg-surface-dark rounded-[2.2rem] border transition-all shadow-sm ${isManageMode ? 'border-red-500/50 scale-[0.98]' : 'border-black/10 dark:border-white/10 active:scale-[0.98] cursor-pointer'}`}>
     {isManageMode && (
       <button onClick={(e) => onDelete(e, pdv)} className="absolute -top-2 -right-2 size-10 bg-red-500 text-white rounded-full shadow-lg flex items-center justify-center z-10 border border-black/10">
@@ -147,11 +148,24 @@ const PDVCard: React.FC<{ pdv: any, isManageMode: boolean, onDelete: any, onSele
     )}
     <div className="flex justify-between items-start mb-4">
       <div className="flex-1 min-w-0 pr-2">
-        <h4 className={`text-sm font-black uppercase italic leading-none truncate ${isManageMode ? 'text-red-500' : 'text-text-main-light dark:text-white'}`}>{pdv.companyName}</h4>
+        <div className="flex items-center gap-2">
+          <h4 className={`text-sm font-black uppercase italic leading-none truncate ${isManageMode ? 'text-red-500' : 'text-text-main-light dark:text-white'}`}>{pdv.companyName}</h4>
+          {pdv.phone && (
+            <span className="material-symbols-outlined text-[12px] text-green-500" title={pdv.phone}>verified_user</span>
+          )}
+        </div>
         <p className="text-[9px] font-bold text-text-sub-light mt-1.5 uppercase truncate tracking-widest">{pdv.city} • {pdv.contactName}</p>
       </div>
-      <div className="text-right">
+      <div className="text-right flex flex-col items-end gap-1">
         <div className={`text-base font-black italic ${pdv.stats.efficiency >= 75 ? 'text-green-500' : 'text-primary'}`}>{pdv.stats.isFuture ? '0%' : `${Math.round(pdv.stats.efficiency)}%`}</div>
+        {!isManageMode && (
+          <button 
+            onClick={(e) => { e.stopPropagation(); onHistory(pdv); }} 
+            className="size-8 rounded-lg bg-surface-light/60 dark:bg-white/5 border border-black/5 flex items-center justify-center text-text-sub-light hover:text-primary transition-colors"
+          >
+            <span className="material-symbols-outlined !text-base">history</span>
+          </button>
+        )}
       </div>
     </div>
     <div className="flex items-center justify-between pt-4 border-t border-black/5 dark:border-white/5">

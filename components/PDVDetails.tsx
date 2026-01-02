@@ -1,114 +1,144 @@
 
-import React, { useState } from 'react';
-import { PDV, Sale } from '../types';
+import React, { useMemo } from 'react';
+import { PDV, Sale, Truffle } from '../types';
 
 interface Props {
-  pdvs: PDV[];
+  pdv: PDV | null;
   sales: Sale[];
+  truffles: Truffle[];
   onBack: () => void;
-  onDeletePDV: (id: string) => void;
   onSelectPDVForSale: (pdv: PDV) => void;
 }
 
-const PDVDetails: React.FC<Props> = ({ pdvs, sales, onBack, onDeletePDV, onSelectPDVForSale }) => {
-  const [search, setSearch] = useState('');
-  const now = Date.now();
-  const DAY_IN_MS = 24 * 60 * 60 * 1000;
+const PDVDetails: React.FC<Props> = ({ pdv, sales, truffles, onBack, onSelectPDVForSale }) => {
+  if (!pdv) return null;
 
-  // Encontrar última venda para cada PDV
-  const pdvAnalysis = pdvs.map(pdv => {
-    const lastSale = sales
-      .filter(s => s.type === 'PDV' && (s.location.toLowerCase() === pdv.companyName.toLowerCase() || s.city === pdv.city))
-      .sort((a, b) => b.timestamp - a.timestamp)[0];
+  const pdvSales = useMemo(() => {
+    return sales
+      .filter(s => s.location.toLowerCase() === pdv.companyName.toLowerCase() && s.type === 'PDV')
+      .sort((a, b) => b.timestamp - a.timestamp);
+  }, [sales, pdv]);
 
-    const daysSince = lastSale ? Math.floor((now - lastSale.timestamp) / DAY_IN_MS) : 999;
+  const monthlyHistory = useMemo(() => {
+    const months: Record<string, { label: string, sales: Sale[], total: number }> = {};
     
-    return {
-      ...pdv,
-      daysSince,
-      lastVisit: lastSale ? lastSale.date : 'NUNCA VISITADO'
-    };
-  }).sort((a, b) => b.daysSince - a.daysSince); // Ordena pelos mais antigos (esquecidos) no topo
+    pdvSales.forEach(sale => {
+      const date = new Date(sale.timestamp);
+      const monthKey = `${date.getFullYear()}-${date.getMonth()}`;
+      const monthLabel = date.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }).toUpperCase();
+      
+      if (!months[monthKey]) {
+        months[monthKey] = { label: monthLabel, sales: [], total: 0 };
+      }
+      months[monthKey].sales.push(sale);
+      months[monthKey].total += sale.total;
+    });
 
-  const filtered = pdvAnalysis.filter(p => 
-    p.companyName.toLowerCase().includes(search.toLowerCase()) || 
-    p.city.toLowerCase().includes(search.toLowerCase()) ||
-    p.contactName.toLowerCase().includes(search.toLowerCase())
-  );
+    return Object.values(months);
+  }, [pdvSales]);
+
+  const totalRevenue = pdvSales.reduce((acc, s) => acc + s.total, 0);
 
   return (
-    <div className="flex flex-col min-h-screen bg-background-light dark:bg-background-dark pb-10">
-      <header className="sticky top-0 z-50 bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-md px-6 h-20 flex items-center justify-between border-b border-gray-100 dark:border-white/5">
-        <button onClick={onBack} className="size-11 flex items-center justify-center rounded-2xl bg-white dark:bg-surface-dark shadow-sm text-gray-500">
+    <div className="flex flex-col min-h-screen bg-background-light dark:bg-background-dark pb-32">
+      <header className="sticky top-0 z-50 bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-md px-6 h-20 flex items-center justify-between border-b border-black/10 dark:border-white/10">
+        <button onClick={onBack} className="size-11 flex items-center justify-center rounded-2xl bg-surface-light/40 dark:bg-surface-dark shadow-sm text-text-sub-light border border-black/10">
           <span className="material-symbols-outlined">arrow_back</span>
         </button>
-        <div className="flex flex-col items-center">
-          <h2 className="text-lg font-black text-gray-900 dark:text-white uppercase italic tracking-tighter italic">Todos os PDVs</h2>
-          <span className="text-[10px] font-black text-primary uppercase tracking-widest mt-0.5">Gestão de Carteira</span>
+        <div className="flex flex-col items-center flex-1 truncate px-4">
+          <h2 className="text-sm font-black text-text-main-light dark:text-white uppercase italic truncate max-w-full">{pdv.companyName}</h2>
+          <span className="text-[8px] font-black text-primary uppercase tracking-[0.3em] mt-0.5 italic">Histórico de Visitas</span>
         </div>
-        <div className="size-11"></div>
+        <button 
+          onClick={() => onSelectPDVForSale(pdv)}
+          className="size-11 flex items-center justify-center rounded-2xl bg-primary text-white shadow-lg shadow-primary/20 border border-black/10"
+        >
+          <span className="material-symbols-outlined font-black">receipt_long</span>
+        </button>
       </header>
 
-      <div className="p-6">
-        <div className="relative mb-8">
-          <span className="absolute left-5 top-1/2 -translate-y-1/2 material-symbols-outlined text-gray-300">search</span>
-          <input 
-            className="w-full pl-14 pr-6 py-5 bg-white dark:bg-surface-dark rounded-[2rem] border-none shadow-sm focus:ring-2 focus:ring-primary/20 text-sm font-bold placeholder:text-gray-300"
-            placeholder="Qual ponto deseja encontrar?"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-        </div>
-
-        <div className="flex flex-col gap-4">
-          {filtered.length === 0 ? (
-            <div className="py-20 flex flex-col items-center opacity-20 text-center">
-               <span className="material-symbols-outlined text-5xl mb-3">manage_search</span>
-               <p className="text-sm font-bold uppercase italic">Nenhum parceiro encontrado...</p>
-            </div>
-          ) : (
-            filtered.map(pdv => (
-              <div key={pdv.id} className="bg-white dark:bg-surface-dark p-6 rounded-[2.5rem] border border-gray-100 dark:border-white/5 shadow-sm transition-all hover:border-primary/20 group">
-                <div className="flex justify-between items-start mb-6">
-                  <div className="flex-1 min-w-0 pr-4">
-                    <h4 className="font-black text-gray-900 dark:text-white text-base truncate uppercase italic tracking-tight leading-none">{pdv.companyName}</h4>
-                    <p className="text-[10px] font-bold text-primary uppercase mt-1 tracking-widest">{pdv.city} • {pdv.contactName}</p>
-                  </div>
-                  <div className="text-right shrink-0">
-                    <div className={`px-4 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest shadow-sm ${pdv.daysSince >= 28 ? 'bg-red-500 text-white shadow-red-200' : pdv.daysSince >= 15 ? 'bg-orange-500 text-white shadow-orange-200' : 'bg-green-500 text-white shadow-green-200'}`}>
-                      {pdv.daysSince >= 999 ? 'Sem Histórico' : `${pdv.daysSince} dias`}
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="flex items-center justify-between gap-3 pt-5 border-t border-gray-50 dark:border-white/5">
-                  <div className="flex items-center gap-2">
-                    <span className="material-symbols-outlined text-sm text-gray-300">update</span>
-                    <span className="text-[9px] font-black text-gray-400 uppercase italic">Última Visita: {pdv.lastVisit}</span>
-                  </div>
-                  
-                  <div className="flex gap-2">
-                    <button 
-                      onClick={() => onDeletePDV(pdv.id)}
-                      className="size-10 rounded-xl bg-red-50 dark:bg-red-950/20 text-red-400 flex items-center justify-center hover:bg-red-500 hover:text-white transition-all active:scale-90"
-                      title="Excluir PDV"
-                    >
-                      <span className="material-symbols-outlined !text-lg">delete_forever</span>
-                    </button>
-                    <button 
-                      onClick={() => onSelectPDVForSale(pdv)}
-                      className="h-10 px-4 rounded-xl bg-primary text-white text-[10px] font-black uppercase tracking-widest flex items-center gap-2 active:scale-95 transition-all shadow-md shadow-primary/10"
-                    >
-                      <span className="material-symbols-outlined !text-sm">receipt_long</span>
-                      Acerto
-                    </button>
-                  </div>
-                </div>
+      <main className="p-6 space-y-8">
+        {/* Sumário do Parceiro */}
+        <section className="bg-surface-light/30 backdrop-blur-xl dark:bg-surface-dark p-6 rounded-[2.5rem] border border-black/10 shadow-sm relative overflow-hidden">
+          <div className="absolute top-0 right-0 p-6 opacity-[0.05]">
+            <span className="material-symbols-outlined text-7xl text-primary">analytics</span>
+          </div>
+          <div className="relative z-10">
+            <p className="text-[10px] font-black text-primary uppercase tracking-widest mb-4">Métricas Acumuladas</p>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <span className="text-[8px] font-black text-text-sub-light uppercase tracking-widest">Faturamento Total</span>
+                <p className="text-xl font-black italic text-text-main-light dark:text-white mt-0.5">R$ {totalRevenue.toFixed(2)}</p>
               </div>
-            ))
-          )}
-        </div>
-      </div>
+              <div>
+                <span className="text-[8px] font-black text-text-sub-light uppercase tracking-widest">Visitas</span>
+                <p className="text-xl font-black italic text-text-main-light dark:text-white mt-0.5">{pdvSales.length}</p>
+              </div>
+            </div>
+            {pdv.phone && (
+              <div className="mt-4 pt-4 border-t border-black/5 dark:border-white/5 flex items-center gap-2">
+                <span className="material-symbols-outlined text-xs text-text-sub-light">call</span>
+                <span className="text-[10px] font-bold text-text-sub-light">{pdv.phone}</span>
+              </div>
+            )}
+          </div>
+        </section>
+
+        {/* Linha do Tempo Mensal */}
+        {monthlyHistory.length === 0 ? (
+          <div className="py-20 flex flex-col items-center opacity-30 text-center gap-4 italic">
+            <span className="material-symbols-outlined text-5xl">manage_search</span>
+            <p className="text-xs font-bold uppercase tracking-widest">Nenhuma visita registrada para este PDV ainda.</p>
+          </div>
+        ) : (
+          <div className="space-y-12">
+            {monthlyHistory.map((month) => (
+              <section key={month.label} className="space-y-4">
+                <div className="flex items-center justify-between px-2">
+                  <h3 className="text-xs font-black text-text-sub-light dark:text-text-sub-dark uppercase tracking-[0.2em] italic border-b border-primary/20 pb-1">{month.label}</h3>
+                  <span className="text-[10px] font-black text-primary italic">R$ {month.total.toFixed(2)}</span>
+                </div>
+
+                <div className="space-y-4">
+                  {month.sales.map((visit) => (
+                    <div key={visit.id} className="bg-surface-light/40 backdrop-blur-md dark:bg-surface-dark p-5 rounded-[2.2rem] border border-black/10 dark:border-white/10 shadow-sm space-y-4">
+                      <div className="flex justify-between items-center">
+                        <span className="text-[10px] font-black text-text-main-light dark:text-white uppercase italic">{visit.date}</span>
+                        <span className="text-sm font-black text-primary italic">R$ {visit.total.toFixed(2)}</span>
+                      </div>
+
+                      {/* Detalhes dos Itens Vendidos */}
+                      <div className="grid grid-cols-2 gap-2">
+                        {visit.items.map(item => {
+                          const truffle = truffles.find(t => t.id === item.truffleId);
+                          if (!truffle || item.quantity === 0) return null;
+                          return (
+                            <div key={item.truffleId} className="bg-background-light/30 dark:bg-white/5 p-2 rounded-xl border border-black/5 flex items-center gap-2">
+                              <span className="material-symbols-outlined text-[10px] text-primary">{truffle.icon}</span>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-[8px] font-black uppercase truncate leading-none">{truffle.flavor}</p>
+                                <p className="text-[9px] font-bold text-primary mt-0.5">{item.quantity} un</p>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      {/* Observações - Campo que o usuário sentiu falta */}
+                      {visit.observation && (
+                        <div className="bg-primary/5 dark:bg-primary/10 p-4 rounded-2xl border border-primary/10 relative">
+                          <span className="material-symbols-outlined absolute -top-2 -left-2 size-5 bg-primary text-white text-[10px] flex items-center justify-center rounded-full">comment</span>
+                          <p className="text-[10px] font-medium text-text-main-light dark:text-gray-300 leading-relaxed italic">"{visit.observation}"</p>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </section>
+            ))}
+          </div>
+        )}
+      </main>
     </div>
   );
 };

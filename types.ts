@@ -39,6 +39,7 @@ export interface PDV {
   companyName: string;
   contactName: string;
   city: string;
+  phone?: string;
 }
 
 export enum View {
