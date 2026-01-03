@@ -42,7 +42,7 @@ const RegisterSale: React.FC<Props> = ({ truffles, onAddSale, onCancel, type, pr
     }
   }, [initialSale]);
 
-  const isFuturePDV = preSelectedPDV ? !sales.some(s => s.location.toLowerCase() === preSelectedPDV.companyName.toLowerCase() && s.type === 'PDV') : false;
+  const isPastDate = new Date(selectedDate + "T23:59:59") < new Date(new Date().setHours(0,0,0,0));
 
   const calculatedTotal = (Object.entries(quantities) as [string, number][]).reduce((acc, [id, qty]) => {
     const truffle = truffles.find(t => t.id === id);
@@ -62,8 +62,9 @@ const RegisterSale: React.FC<Props> = ({ truffles, onAddSale, onCancel, type, pr
         newConsignedQuantity: newConsigned[t.id] || 0
       }));
 
-    if (items.length === 0) { alert("Adicione pelo menos uma trufa!"); return; }
+    if (items.length === 0) { alert("Adicione pelo menos uma trufa ou estoque deixado!"); return; }
 
+    // Usar meio-dia para evitar problemas de fuso horário ao salvar apenas data
     const dateObj = new Date(selectedDate + "T12:00:00");
     const newSale: Sale = {
       id: initialSale?.id || Math.random().toString(36).substr(2, 9),
@@ -100,8 +101,11 @@ const RegisterSale: React.FC<Props> = ({ truffles, onAddSale, onCancel, type, pr
 
         <div className="px-6 space-y-4">
           <div className="bg-white dark:bg-surface-dark p-4 rounded-[2rem] border border-gray-100 dark:border-white/5 mb-6">
-             <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest px-1">Data da Venda</label>
-             <input type="date" className="w-full bg-transparent border-none p-2 text-xs font-black" value={selectedDate} onChange={e => setSelectedDate(e.target.value)} />
+             <div className="flex justify-between items-center px-1 mb-1">
+                <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Data da Venda</label>
+                {isPastDate && <span className="text-[7px] font-black text-blue-500 bg-blue-500/10 px-2 py-0.5 rounded-full uppercase tracking-tighter">Retroativo</span>}
+             </div>
+             <input type="date" className="w-full bg-transparent border-none p-2 text-xs font-black focus:ring-0" value={selectedDate} onChange={e => setSelectedDate(e.target.value)} />
           </div>
 
           {truffles.map(t => (
@@ -167,15 +171,27 @@ const RegisterSale: React.FC<Props> = ({ truffles, onAddSale, onCancel, type, pr
               onChange={e => setLocation(e.target.value)} 
             />
           </div>
-          <div className="grid grid-cols-2 gap-3">
-             <div className="space-y-1">
-               <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest px-1">Responsável</label>
-               <input className="w-full bg-background-light dark:bg-white/5 border-none rounded-2xl p-4 text-xs font-bold" placeholder="Contato" value={ownerName} onChange={e => setOwnerName(e.target.value)} />
-             </div>
-             <div className="space-y-1">
-               <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest px-1">Data</label>
-               <input type="date" className="w-full bg-background-light dark:bg-white/5 border-none rounded-2xl p-4 text-[10px] font-black h-[52px]" value={selectedDate} onChange={e => setSelectedDate(e.target.value)} />
-             </div>
+          
+          {/* CAMPO DE DATA DESTACADO PARA RETROATIVO */}
+          <div className="space-y-1">
+            <div className="flex justify-between items-center px-1">
+               <label className="text-[9px] font-black text-primary uppercase tracking-widest">Data da Visita</label>
+               {isPastDate && <span className="text-[8px] font-black text-blue-500 bg-blue-500/10 px-3 py-1 rounded-full uppercase italic animate-pulse">Registro Retroativo</span>}
+            </div>
+            <div className="relative">
+              <span className="absolute left-4 top-1/2 -translate-y-1/2 material-symbols-outlined text-primary text-lg pointer-events-none">calendar_month</span>
+              <input 
+                type="date" 
+                className="w-full bg-background-light dark:bg-white/5 border-none rounded-2xl py-4 pl-12 pr-4 text-xs font-black h-[56px] focus:ring-2 focus:ring-primary/30" 
+                value={selectedDate} 
+                onChange={e => setSelectedDate(e.target.value)} 
+              />
+            </div>
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest px-1">Responsável</label>
+            <input className="w-full bg-background-light dark:bg-white/5 border-none rounded-2xl p-4 text-xs font-bold" placeholder="Contato" value={ownerName} onChange={e => setOwnerName(e.target.value)} />
           </div>
         </section>
 
