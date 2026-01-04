@@ -16,12 +16,48 @@ const SalesHistory: React.FC<Props> = ({ sales, truffles, onDeleteSale, onUpdate
   const [filter, setFilter] = useState<'Todos' | 'Rua' | 'PDV'>('Todos');
 
   const todayStart = new Date(new Date().setHours(0, 0, 0, 0)).getTime();
-  const todaySales = sales.filter(s => s.timestamp >= todayStart);
-  const todayTotal = todaySales.reduce((acc, curr) => acc + curr.total, 0);
+  const sevenDaysAgo = todayStart - (7 * 24 * 60 * 60 * 1000);
 
-  const filteredSales = (filter === 'Todos' ? sales : sales.filter(s => s.type === filter)).sort((a,b) => b.timestamp - a.timestamp);
+  // Lógica de agrupamento por dia para os últimos 7 dias
+  const groupedSalesByDay = useMemo(() => {
+    const filtered = sales.filter(s => {
+      const isRecent = s.timestamp >= sevenDaysAgo;
+      const matchesFilter = filter === 'Todos' || s.type === filter;
+      return isRecent && matchesFilter;
+    });
 
-  // Lógica de Agrupamento Financeiro Mensal com Conversão de Estoque
+    const groups: Record<string, { dateLabel: string, timestamp: number, sales: Sale[], dayTotal: number }> = {};
+
+    filtered.forEach(sale => {
+      const d = new Date(sale.timestamp);
+      d.setHours(0, 0, 0, 0);
+      const key = d.getTime().toString();
+      
+      if (!groups[key]) {
+        let label = d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long' }).toUpperCase();
+        const now = new Date();
+        now.setHours(0, 0, 0, 0);
+        
+        if (d.getTime() === now.getTime()) label = "HOJE";
+        else if (d.getTime() === now.getTime() - 86400000) label = "ONTEM";
+        else label = d.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'short' }).toUpperCase();
+
+        groups[key] = {
+          dateLabel: label,
+          timestamp: d.getTime(),
+          sales: [],
+          dayTotal: 0
+        };
+      }
+      
+      groups[key].sales.push(sale);
+      groups[key].dayTotal += sale.total;
+    });
+
+    return Object.values(groups).sort((a, b) => b.timestamp - a.timestamp);
+  }, [sales, filter, sevenDaysAgo]);
+
+  // Lógica de Agrupamento Financeiro Mensal
   const financialStats = useMemo(() => {
     const months: Record<string, { 
       month: string, 
@@ -58,7 +94,6 @@ const SalesHistory: React.FC<Props> = ({ sales, truffles, onDeleteSale, onUpdate
         months[key].street += sale.total;
       } else if (sale.type === 'PDV') {
         months[key].pdv += sale.total;
-        // Soma volumes para conversão
         sale.items.forEach(item => {
           months[key].pdvItemsSold += item.quantity;
           months[key].pdvItemsLeft += (item.leftOverQuantity || 0);
@@ -111,43 +146,39 @@ const SalesHistory: React.FC<Props> = ({ sales, truffles, onDeleteSale, onUpdate
 
       <div className="px-6 py-6 flex flex-col gap-8">
         {activeTab === 'vendas' ? (
-          <>
-            <section>
-              <div className="bg-primary text-white rounded-[2.5rem] p-8 shadow-lg shadow-primary/20 relative overflow-hidden border border-black/10">
-                <div className="absolute top-0 right-0 p-6 opacity-20">
-                  <span className="material-symbols-outlined text-7xl">payments</span>
-                </div>
-                <p className="text-[10px] font-black uppercase tracking-[0.2em] mb-2">Vendido Hoje</p>
-                <h2 className="text-4xl font-black italic tracking-tighter">R$ {todayTotal.toFixed(2)}</h2>
-                <div className="flex items-center justify-between mt-4">
-                   <p className="text-[10px] font-bold opacity-80 uppercase tracking-widest italic">{todaySales.length} atendimentos</p>
-                   <span className="text-[8px] bg-white/20 px-2 py-1 rounded-full font-black uppercase tracking-widest">Tempo Real</span>
-                </div>
+          <div className="space-y-10 animate-in fade-in slide-in-from-bottom-2 duration-500">
+            {groupedSalesByDay.length === 0 ? (
+              <div className="py-20 text-center opacity-30 italic text-sm">
+                Nenhuma venda nos últimos 7 dias.
               </div>
-            </section>
-
-            <section>
-              <div className="flex justify-between items-center mb-4 px-2">
-                <h3 className="text-[10px] font-black text-primary uppercase tracking-[0.2em] italic">Últimas Vendas</h3>
-                <button onClick={onRegisterStreetSale} className="text-[9px] font-black text-primary uppercase bg-primary/10 px-3 py-1 rounded-full border border-primary/10">Nova Venda +</button>
-              </div>
-              <div className="flex flex-col gap-3">
-                {filteredSales.length === 0 ? (
-                  <div className="py-20 text-center opacity-20 italic text-sm">Nenhuma venda encontrada para o filtro.</div>
-                ) : (
-                  filteredSales.map(sale => (
-                    <SaleHistoryItem 
-                      key={sale.id} 
-                      sale={sale} 
-                      onEdit={() => onEditSale(sale)}
-                    />
-                  ))
-                )}
-              </div>
-            </section>
-          </>
+            ) : (
+              groupedSalesByDay.map(group => (
+                <section key={group.timestamp} className="space-y-4">
+                  <div className="flex items-center justify-between px-2">
+                    <div className="flex items-center gap-3">
+                      <div className="w-1.5 h-6 bg-primary rounded-full"></div>
+                      <h3 className="text-[11px] font-black text-text-main-light dark:text-white uppercase tracking-[0.15em] italic">{group.dateLabel}</h3>
+                    </div>
+                    <div className="text-right">
+                       <p className="text-[10px] font-black text-primary italic leading-none">R$ {group.dayTotal.toFixed(2)}</p>
+                       <p className="text-[7px] font-bold text-gray-400 uppercase mt-0.5 tracking-tighter">{group.sales.length} atendimentos</p>
+                    </div>
+                  </div>
+                  <div className="flex flex-col gap-3">
+                    {group.sales.sort((a,b) => b.timestamp - a.timestamp).map(sale => (
+                      <SaleHistoryItem 
+                        key={sale.id} 
+                        sale={sale} 
+                        onEdit={() => onEditSale(sale)}
+                      />
+                    ))}
+                  </div>
+                </section>
+              ))
+            )}
+          </div>
         ) : (
-          /* ABA FINANCEIRA (DETALHAMENTO MENSAL E CONVERSÃO) */
+          /* ABA FINANCEIRA */
           <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <section>
               <div className="bg-surface-light dark:bg-surface-dark rounded-[2.5rem] p-8 shadow-sm border border-black/10 dark:border-white/10 relative overflow-hidden">
@@ -160,7 +191,6 @@ const SalesHistory: React.FC<Props> = ({ sales, truffles, onDeleteSale, onUpdate
                     R$ {annualTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                   </h2>
                   
-                  {/* Métrica de Conversão Anual */}
                   <div className="mt-6 pt-6 border-t border-black/5 dark:border-white/5 flex flex-col items-center">
                     <span className="text-[9px] font-black text-text-sub-light uppercase tracking-widest mb-3 italic">Conversão Global PDVs</span>
                     <div className="flex items-center gap-4">
@@ -224,7 +254,6 @@ const SalesHistory: React.FC<Props> = ({ sales, truffles, onDeleteSale, onUpdate
                              </div>
                           </div>
                           
-                          {/* Métrica de Conversão Mensal */}
                           <div className="pt-4 border-t border-black/5 dark:border-white/5 space-y-4">
                              <div>
                                 <div className="flex justify-between text-[8px] font-black text-text-sub-light uppercase mb-2 px-1">
@@ -280,9 +309,9 @@ const SaleHistoryItem: React.FC<{ sale: Sale, onEdit: () => void }> = ({ sale, o
       <div className="flex items-center gap-2 pl-2">
         <div className="text-right">
           <p className="text-primary font-black text-sm">R$ {sale.total.toFixed(2)}</p>
-          <span className="text-[7px] font-black text-text-sub-light/50 uppercase">{sale.date}</span>
+          <span className="text-[7px] font-bold text-text-sub-light/40 uppercase tracking-tighter">Ver Detalhes</span>
         </div>
-        <span className="material-symbols-outlined text-gray-400 text-sm">edit</span>
+        <span className="material-symbols-outlined text-gray-400 text-sm opacity-30">chevron_right</span>
       </div>
     </div>
   );
